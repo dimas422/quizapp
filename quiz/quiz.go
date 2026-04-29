@@ -4,18 +4,20 @@ import (
 	"context"
 	"errors"
 
+	"encore.app/ent"
+	entanswer "encore.app/ent/answer"
+	entquestion "encore.app/ent/question"
+	entquiz "encore.app/ent/quiz"
 	"encore.dev/beta/auth"
-	"encore.dev/storage/sqldb"
+	"entgo.io/ent/dialect/sql"
+	"github.com/google/uuid"
 )
-
-var db = sqldb.Named("quiz")
-
 // ===== ТИПЫ =====
 
 type Answer struct {
 	ID         string `json:"id"`
 	Text       string `json:"text"`
-	IsCorrect  bool   `json:"is_correct,omitempty"` // скрываем для юзера
+	IsCorrect  bool   `json:"is_correct,omitempty"`
 	OrderIndex int    `json:"order_index"`
 }
 
@@ -80,269 +82,9 @@ type MessageResponse struct {
 	Message string `json:"message"`
 }
 
-// ===== ADMIN: список всех квизов =====
-
-//encore:api auth method=GET path=/admin/quizzes
-func AdminListQuizzes(ctx context.Context) (*QuizListResponse, error) {
-	ud := auth.Data().(*UserData)
-	if ud.Role != "admin" {
-		return nil, errors.New("доступ запрещён")
-	}
-
-	rows, err := db.Query(ctx, `
-		SELECT q.id, q.title, q.is_published, q.pass_threshold, q.one_attempt, q.show_answers,
-		       COUNT(qu.id) as question_count
-		FROM quizzes q
-		LEFT JOIN questions qu ON qu.quiz_id = q.id
-		GROUP BY q.id
-		ORDER BY q.created_at DESC
-	`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var quizzes []QuizListItem
-	for rows.Next() {
-		var q QuizListItem
-		err := rows.Scan(&q.ID, &q.Title, &q.IsPublished, &q.PassThreshold, &q.OneAttempt, &q.ShowAnswers, &q.QuestionCount)
-		if err != nil {
-			return nil, err
-		}
-		quizzes = append(quizzes, q)
-	}
-	if quizzes == nil {
-		quizzes = []QuizListItem{}
-	}
-	return &QuizListResponse{Quizzes: quizzes}, nil
-}
-
-// ===== ADMIN: создать квиз =====
-
-//encore:api auth method=POST path=/admin/quizzes
-func AdminCreateQuiz(ctx context.Context, req *CreateQuizRequest) (*QuizResponse, error) {
-	ud := auth.Data().(*UserData)
-	if ud.Role != "admin" {
-		return nil, errors.New("доступ запрещён")
-	}
-	if req.Title == "" {
-		return nil, errors.New("название обязательно")
-	}
-	if len(req.Questions) == 0 {
-		return nil, errors.New("минимум 1 вопрос")
-	}
-
-	var quizID string
-	err := db.QueryRow(ctx, `
-		INSERT INTO quizzes (title, is_published, pass_threshold, one_attempt, show_answers, created_by)
-		VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-		req.Title, req.IsPublished, req.PassThreshold, req.OneAttempt, req.ShowAnswers, ud.UserID,
-	).Scan(&quizID)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, q := range req.Questions {
-		if len(q.Answers) < 2 {
-			return nil, errors.New("минимум 2 варианта ответа")
-		}
-		var questionID string
-		err := db.QueryRow(ctx, `
-			INSERT INTO questions (quiz_id, text, order_index) VALUES ($1, $2, $3) RETURNING id`,
-			quizID, q.Text, q.OrderIndex,
-		).Scan(&questionID)
-		if err != nil {
-			return nil, err
-		}
-		for _, a := range q.Answers {
-			_, err := db.Exec(ctx, `
-				INSERT INTO answers (question_id, text, is_correct, order_index) VALUES ($1, $2, $3, $4)`,
-				questionID, a.Text, a.IsCorrect, a.OrderIndex,
-			)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	return getQuizByID(ctx, quizID, true)
-}
-
-// ===== ADMIN: получить квиз для редактирования =====
-
-//encore:api auth method=GET path=/admin/quizzes/:id
-func AdminGetQuiz(ctx context.Context, id string) (*QuizResponse, error) {
-	ud := auth.Data().(*UserData)
-	if ud.Role != "admin" {
-		return nil, errors.New("доступ запрещён")
-	}
-	return getQuizByID(ctx, id, true)
-}
-
-// ===== ADMIN: обновить квиз =====
-
-//encore:api auth method=PUT path=/admin/quizzes/:id
-func AdminUpdateQuiz(ctx context.Context, id string, req *CreateQuizRequest) (*QuizResponse, error) {
-	ud := auth.Data().(*UserData)
-	if ud.Role != "admin" {
-		return nil, errors.New("доступ запрещён")
-	}
-	if req.Title == "" {
-		return nil, errors.New("название обязательно")
-	}
-
-	// Обновляем квиз
-	_, err := db.Exec(ctx, `
-		UPDATE quizzes SET title=$1, is_published=$2, pass_threshold=$3, one_attempt=$4, show_answers=$5
-		WHERE id=$6`,
-		req.Title, req.IsPublished, req.PassThreshold, req.OneAttempt, req.ShowAnswers, id,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	// Шаг 1: находим все попытки этого квиза
-	attemptRows, err := db.Query(ctx, `SELECT id FROM attempts WHERE quiz_id=$1`, id)
-	if err != nil {
-		return nil, err
-	}
-	var attemptIDs []string
-	for attemptRows.Next() {
-		var aid string
-		attemptRows.Scan(&aid)
-		attemptIDs = append(attemptIDs, aid)
-	}
-	attemptRows.Close()
-
-	// Шаг 2: удаляем attempt_answers
-	for _, aid := range attemptIDs {
-		db.Exec(ctx, `DELETE FROM attempt_answers WHERE attempt_id=$1`, aid)
-	}
-
-	// Шаг 3: удаляем attempts
-	db.Exec(ctx, `DELETE FROM attempts WHERE quiz_id=$1`, id)
-
-	// Шаг 4: находим все вопросы
-	qrows, err := db.Query(ctx, `SELECT id FROM questions WHERE quiz_id=$1`, id)
-	if err != nil {
-		return nil, err
-	}
-	var questionIDs []string
-	for qrows.Next() {
-		var qid string
-		qrows.Scan(&qid)
-		questionIDs = append(questionIDs, qid)
-	}
-	qrows.Close()
-
-	// Шаг 5: удаляем answers
-	for _, qid := range questionIDs {
-		db.Exec(ctx, `DELETE FROM answers WHERE question_id=$1`, qid)
-	}
-
-	// Шаг 6: удаляем questions
-	db.Exec(ctx, `DELETE FROM questions WHERE quiz_id=$1`, id)
-
-	// Шаг 7: создаём новые вопросы и ответы
-	for _, q := range req.Questions {
-		var questionID string
-		err := db.QueryRow(ctx, `
-			INSERT INTO questions (quiz_id, text, order_index) VALUES ($1, $2, $3) RETURNING id`,
-			id, q.Text, q.OrderIndex,
-		).Scan(&questionID)
-		if err != nil {
-			return nil, err
-		}
-		for _, a := range q.Answers {
-			_, err := db.Exec(ctx, `
-				INSERT INTO answers (question_id, text, is_correct, order_index) VALUES ($1, $2, $3, $4)`,
-				questionID, a.Text, a.IsCorrect, a.OrderIndex,
-			)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	return getQuizByID(ctx, id, true)
-}
-// ===== ADMIN: удалить квиз =====
-
-//encore:api auth method=DELETE path=/admin/quizzes/:id
-func AdminDeleteQuiz(ctx context.Context, id string) (*MessageResponse, error) {
-	ud := auth.Data().(*UserData)
-	if ud.Role != "admin" {
-		return nil, errors.New("доступ запрещён")
-	}
-
-	_, err := db.Query(ctx, `DELETE FROM quizzes WHERE id=$1`, id)
-	if err != nil {
-		return nil, err
-	}
-	return &MessageResponse{Message: "квиз удалён"}, nil
-}
-
-// ===== ADMIN: опубликовать / скрыть =====
-
 type PublishRequest struct {
 	IsPublished bool `json:"is_published"`
 }
-
-//encore:api auth method=PATCH path=/admin/quizzes/:id/publish
-func AdminPublishQuiz(ctx context.Context, id string, req *PublishRequest) (*MessageResponse, error) {
-	ud := auth.Data().(*UserData)
-	if ud.Role != "admin" {
-		return nil, errors.New("доступ запрещён")
-	}
-
-	_, err := db.Query(ctx, `UPDATE quizzes SET is_published=$1 WHERE id=$2`, req.IsPublished, id)
-	if err != nil {
-		return nil, err
-	}
-	return &MessageResponse{Message: "статус обновлён"}, nil
-}
-
-// ===== USER: список опубликованных квизов =====
-
-//encore:api auth method=GET path=/quizzes
-func ListQuizzes(ctx context.Context) (*QuizListResponse, error) {
-	rows, err := db.Query(ctx, `
-		SELECT q.id, q.title, q.is_published, q.pass_threshold, q.one_attempt, q.show_answers,
-		       COUNT(qu.id) as question_count
-		FROM quizzes q
-		LEFT JOIN questions qu ON qu.quiz_id = q.id
-		WHERE q.is_published = true
-		GROUP BY q.id
-		ORDER BY q.created_at DESC
-	`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var quizzes []QuizListItem
-	for rows.Next() {
-		var q QuizListItem
-		err := rows.Scan(&q.ID, &q.Title, &q.IsPublished, &q.PassThreshold, &q.OneAttempt, &q.ShowAnswers, &q.QuestionCount)
-		if err != nil {
-			return nil, err
-		}
-		quizzes = append(quizzes, q)
-	}
-	if quizzes == nil {
-		quizzes = []QuizListItem{}
-	}
-	return &QuizListResponse{Quizzes: quizzes}, nil
-}
-
-// ===== USER: получить квиз для прохождения (без правильных ответов) =====
-
-//encore:api auth method=GET path=/quizzes/:id
-func GetQuiz(ctx context.Context, id string) (*QuizResponse, error) {
-	return getQuizByID(ctx, id, false)
-}
-
-// ===== USER: отправить ответы =====
 
 type SubmitRequest struct {
 	Answers []SubmitAnswer `json:"answers"`
@@ -369,73 +111,380 @@ type AnswerDetail struct {
 	IsCorrect     bool   `json:"is_correct"`
 }
 
+// ===== ADMIN: список всех квизов =====
+
+//encore:api auth method=GET path=/admin/quizzes
+func AdminListQuizzes(ctx context.Context) (*QuizListResponse, error) {
+	ud := auth.Data().(*UserData)
+	if ud.Role != "admin" {
+		return nil, errors.New("доступ запрещён")
+	}
+
+	client, err := ent.OpenEntClient()
+	if err != nil {
+		return nil, err
+	}
+	defer client.Close()
+
+	quizzes, err := client.Quiz.Query().WithQuestions().All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []QuizListItem
+	for _, q := range quizzes {
+		result = append(result, QuizListItem{
+			ID:            q.ID.String(),
+			Title:         q.Title,
+			IsPublished:   q.IsPublished,
+			PassThreshold: q.PassThreshold,
+			OneAttempt:    q.OneAttempt,
+			ShowAnswers:   q.ShowAnswers,
+			QuestionCount: len(q.Edges.Questions),
+		})
+	}
+	if result == nil {
+		result = []QuizListItem{}
+	}
+	return &QuizListResponse{Quizzes: result}, nil
+}
+
+// ===== ADMIN: создать квиз =====
+
+//encore:api auth method=POST path=/admin/quizzes
+func AdminCreateQuiz(ctx context.Context, req *CreateQuizRequest) (*QuizResponse, error) {
+	ud := auth.Data().(*UserData)
+	if ud.Role != "admin" {
+		return nil, errors.New("доступ запрещён")
+	}
+	if req.Title == "" {
+		return nil, errors.New("название обязательно")
+	}
+	if len(req.Questions) == 0 {
+		return nil, errors.New("минимум 1 вопрос")
+	}
+
+	client, err := ent.OpenEntClient()
+	if err != nil {
+		return nil, err
+	}
+	defer client.Close()
+
+	q, err := client.Quiz.Create().
+		SetTitle(req.Title).
+		SetIsPublished(req.IsPublished).
+		SetPassThreshold(req.PassThreshold).
+		SetOneAttempt(req.OneAttempt).
+		SetShowAnswers(req.ShowAnswers).
+		Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, qReq := range req.Questions {
+		if len(qReq.Answers) < 2 {
+			return nil, errors.New("минимум 2 варианта ответа")
+		}
+		question, err := client.Question.Create().
+			SetText(qReq.Text).
+			SetOrderIndex(qReq.OrderIndex).
+			SetQuiz(q).
+			Save(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, aReq := range qReq.Answers {
+			_, err := client.Answer.Create().
+				SetText(aReq.Text).
+				SetIsCorrect(aReq.IsCorrect).
+				SetOrderIndex(aReq.OrderIndex).
+				SetQuestion(question).
+				Save(ctx)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return getQuizByID(ctx, q.ID.String(), true)
+}
+
+// ===== ADMIN: получить квиз =====
+
+//encore:api auth method=GET path=/admin/quizzes/:id
+func AdminGetQuiz(ctx context.Context, id string) (*QuizResponse, error) {
+	ud := auth.Data().(*UserData)
+	if ud.Role != "admin" {
+		return nil, errors.New("доступ запрещён")
+	}
+	return getQuizByID(ctx, id, true)
+}
+
+// ===== ADMIN: обновить квиз =====
+
+//encore:api auth method=PUT path=/admin/quizzes/:id
+func AdminUpdateQuiz(ctx context.Context, id string, req *CreateQuizRequest) (*QuizResponse, error) {
+	ud := auth.Data().(*UserData)
+	if ud.Role != "admin" {
+		return nil, errors.New("доступ запрещён")
+	}
+	if req.Title == "" {
+		return nil, errors.New("название обязательно")
+	}
+
+	client, err := ent.OpenEntClient()
+	if err != nil {
+		return nil, err
+	}
+	defer client.Close()
+
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, errors.New("неверный id")
+	}
+
+	_, err = client.Quiz.UpdateOneID(uid).
+		SetTitle(req.Title).
+		SetIsPublished(req.IsPublished).
+		SetPassThreshold(req.PassThreshold).
+		SetOneAttempt(req.OneAttempt).
+		SetShowAnswers(req.ShowAnswers).
+		Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Удаляем старые вопросы
+	questions, _ := client.Question.Query().
+		Where(entquestion.HasQuizWith(entquiz.ID(uid))).
+		WithAnswers().
+		All(ctx)
+
+	for _, q := range questions {
+		for _, a := range q.Edges.Answers {
+			client.Answer.DeleteOneID(a.ID).Exec(ctx)
+		}
+		client.Question.DeleteOneID(q.ID).Exec(ctx)
+	}
+
+	// Создаём новые вопросы
+	quizEnt, _ := client.Quiz.Get(ctx, uid)
+	for _, qReq := range req.Questions {
+		question, err := client.Question.Create().
+			SetText(qReq.Text).
+			SetOrderIndex(qReq.OrderIndex).
+			SetQuiz(quizEnt).
+			Save(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, aReq := range qReq.Answers {
+			_, err := client.Answer.Create().
+				SetText(aReq.Text).
+				SetIsCorrect(aReq.IsCorrect).
+				SetOrderIndex(aReq.OrderIndex).
+				SetQuestion(question).
+				Save(ctx)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return getQuizByID(ctx, id, true)
+}
+
+// ===== ADMIN: удалить квиз =====
+
+//encore:api auth method=DELETE path=/admin/quizzes/:id
+func AdminDeleteQuiz(ctx context.Context, id string) (*MessageResponse, error) {
+	ud := auth.Data().(*UserData)
+	if ud.Role != "admin" {
+		return nil, errors.New("доступ запрещён")
+	}
+
+	client, err := ent.OpenEntClient()
+	if err != nil {
+		return nil, err
+	}
+	defer client.Close()
+
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, errors.New("неверный id")
+	}
+
+	err = client.Quiz.DeleteOneID(uid).Exec(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &MessageResponse{Message: "квиз удалён"}, nil
+}
+
+// ===== ADMIN: опубликовать/скрыть =====
+
+//encore:api auth method=PATCH path=/admin/quizzes/:id/publish
+func AdminPublishQuiz(ctx context.Context, id string, req *PublishRequest) (*MessageResponse, error) {
+	ud := auth.Data().(*UserData)
+	if ud.Role != "admin" {
+		return nil, errors.New("доступ запрещён")
+	}
+
+	client, err := ent.OpenEntClient()
+	if err != nil {
+		return nil, err
+	}
+	defer client.Close()
+
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, errors.New("неверный id")
+	}
+
+	_, err = client.Quiz.UpdateOneID(uid).
+		SetIsPublished(req.IsPublished).
+		Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &MessageResponse{Message: "статус обновлён"}, nil
+}
+
+// ===== USER: список опубликованных квизов =====
+
+//encore:api auth method=GET path=/quizzes
+func ListQuizzes(ctx context.Context) (*QuizListResponse, error) {
+	client, err := ent.OpenEntClient()
+	if err != nil {
+		return nil, err
+	}
+	defer client.Close()
+
+	quizzes, err := client.Quiz.Query().
+		Where(entquiz.IsPublished(true)).
+		WithQuestions().
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []QuizListItem
+	for _, q := range quizzes {
+		result = append(result, QuizListItem{
+			ID:            q.ID.String(),
+			Title:         q.Title,
+			IsPublished:   q.IsPublished,
+			PassThreshold: q.PassThreshold,
+			OneAttempt:    q.OneAttempt,
+			ShowAnswers:   q.ShowAnswers,
+			QuestionCount: len(q.Edges.Questions),
+		})
+	}
+	if result == nil {
+		result = []QuizListItem{}
+	}
+	return &QuizListResponse{Quizzes: result}, nil
+}
+
+// ===== USER: получить квиз для прохождения =====
+
+//encore:api auth method=GET path=/quizzes/:id
+func GetQuiz(ctx context.Context, id string) (*QuizResponse, error) {
+	return getQuizByID(ctx, id, false)
+}
+
+// ===== USER: отправить ответы =====
+
 //encore:api auth method=POST path=/quizzes/:id/submit
 func SubmitQuiz(ctx context.Context, id string, req *SubmitRequest) (*SubmitResult, error) {
 	ud := auth.Data().(*UserData)
 
-	// Проверяем one_attempt
-	var oneAttempt, showAnswers bool
-	var passThreshold int
-	err := db.QueryRow(ctx,
-		`SELECT one_attempt, show_answers, pass_threshold FROM quizzes WHERE id=$1`, id,
-	).Scan(&oneAttempt, &showAnswers, &passThreshold)
+	client, err := ent.OpenEntClient()
+	if err != nil {
+		return nil, err
+	}
+	defer client.Close()
+
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, errors.New("неверный id")
+	}
+
+	q, err := client.Quiz.Get(ctx, uid)
 	if err != nil {
 		return nil, errors.New("квиз не найден")
 	}
 
-	if oneAttempt {
-		var count int
-		db.QueryRow(ctx,
-			`SELECT COUNT(*) FROM attempts WHERE quiz_id=$1 AND user_id=$2`, id, ud.UserID,
-		).Scan(&count)
+	if q.OneAttempt {
+		userUID, _ := uuid.Parse(ud.UserID)
+		count, _ := client.Attempt.Query().
+			Where(func(s *sql.Selector) {
+				s.Where(sql.And(
+					sql.EQ("quiz_id", uid),
+					sql.EQ("user_id", userUID),
+				))
+			}).Count(ctx)
 		if count > 0 {
 			return nil, errors.New("вы уже проходили этот квиз")
 		}
 	}
 
-	// Считаем результат
 	score := 0
 	total := len(req.Answers)
 	var details []AnswerDetail
 
 	for _, a := range req.Answers {
-		var isCorrect bool
-		var questionText, answerText, correctAnswerText string
-
-		db.QueryRow(ctx,
-			`SELECT is_correct FROM answers WHERE id=$1`, a.AnswerID,
-		).Scan(&isCorrect)
-
-		if isCorrect {
+		answerUID, err := uuid.Parse(a.AnswerID)
+		if err != nil {
+			continue
+		}
+		answerEnt, err := client.Answer.Get(ctx, answerUID)
+		if err != nil {
+			continue
+		}
+		if answerEnt.IsCorrect {
 			score++
 		}
+		if q.ShowAnswers {
+			questionUID, _ := uuid.Parse(a.QuestionID)
+			questionEnt, _ := client.Question.Get(ctx, questionUID)
+			correctAnswer, _ := client.Answer.Query().
+				Where(entanswer.IsCorrect(true), entanswer.HasQuestionWith(entquestion.ID(questionUID))).
+				First(ctx)
 
-		if showAnswers {
-			db.QueryRow(ctx, `SELECT text FROM questions WHERE id=$1`, a.QuestionID).Scan(&questionText)
-			db.QueryRow(ctx, `SELECT text FROM answers WHERE id=$1`, a.AnswerID).Scan(&answerText)
-			db.QueryRow(ctx, `SELECT text FROM answers WHERE question_id=$1 AND is_correct=true`, a.QuestionID).Scan(&correctAnswerText)
-
-			details = append(details, AnswerDetail{
-				QuestionText:  questionText,
-				YourAnswer:    answerText,
-				CorrectAnswer: correctAnswerText,
-				IsCorrect:     isCorrect,
-			})
+			detail := AnswerDetail{
+				IsCorrect:  answerEnt.IsCorrect,
+				YourAnswer: answerEnt.Text,
+			}
+			if questionEnt != nil {
+				detail.QuestionText = questionEnt.Text
+			}
+			if correctAnswer != nil {
+				detail.CorrectAnswer = correctAnswer.Text
+			}
+			details = append(details, detail)
 		}
 	}
 
-	// Сохраняем попытку
-	var attemptID string
-	db.QueryRow(ctx,
-		`INSERT INTO attempts (quiz_id, user_id, score, total) VALUES ($1, $2, $3, $4) RETURNING id`,
-		id, ud.UserID, score, total,
-	).Scan(&attemptID)
+	userUID, _ := uuid.Parse(ud.UserID)
+	attempt, err := client.Attempt.Create().
+		SetScore(score).
+		SetTotal(total).
+		SetQuizID(uid).
+		SetUserID(userUID).
+		Save(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	for _, a := range req.Answers {
-		db.Query(ctx,
-			`INSERT INTO attempt_answers (attempt_id, question_id, answer_id) VALUES ($1, $2, $3)`,
-			attemptID, a.QuestionID, a.AnswerID,
-		)
+		questionUID, _ := uuid.Parse(a.QuestionID)
+		answerUID, _ := uuid.Parse(a.AnswerID)
+		client.AttemptAnswer.Create().
+			SetAttemptID(attempt.ID).
+			SetQuestionID(questionUID).
+			SetAnswerID(answerUID).
+			Save(ctx)
 	}
 
 	percent := 0
@@ -447,55 +496,65 @@ func SubmitQuiz(ctx context.Context, id string, req *SubmitRequest) (*SubmitResu
 		Score:       score,
 		Total:       total,
 		Percent:     percent,
-		Passed:      percent >= passThreshold,
-		ShowAnswers: showAnswers,
+		Passed:      percent >= q.PassThreshold,
+		ShowAnswers: q.ShowAnswers,
 		Details:     details,
 	}, nil
 }
 
-// ===== ВСПОМОГАТЕЛЬНАЯ: получить квиз с вопросами =====
+// ===== ВСПОМОГАТЕЛЬНАЯ =====
 
 func getQuizByID(ctx context.Context, id string, withCorrect bool) (*QuizResponse, error) {
-	var q Quiz
-	err := db.QueryRow(ctx,
-		`SELECT id, title, is_published, pass_threshold, one_attempt, show_answers, created_by FROM quizzes WHERE id=$1`, id,
-	).Scan(&q.ID, &q.Title, &q.IsPublished, &q.PassThreshold, &q.OneAttempt, &q.ShowAnswers, &q.CreatedBy)
+	client, err := ent.OpenEntClient()
+	if err != nil {
+		return nil, err
+	}
+	defer client.Close()
+
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, errors.New("неверный id")
+	}
+
+	q, err := client.Quiz.Query().
+		Where(entquiz.ID(uid)).
+		WithQuestions(func(qq *ent.QuestionQuery) {
+			qq.WithAnswers()
+		}).
+		Only(ctx)
 	if err != nil {
 		return nil, errors.New("квиз не найден")
 	}
 
-	rows, err := db.Query(ctx,
-		`SELECT id, text, order_index FROM questions WHERE quiz_id=$1 ORDER BY order_index`, id,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var question Question
-		rows.Scan(&question.ID, &question.Text, &question.OrderIndex)
-
-		aRows, err := db.Query(ctx,
-			`SELECT id, text, is_correct, order_index FROM answers WHERE question_id=$1 ORDER BY order_index`,
-			question.ID,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		for aRows.Next() {
-			var a Answer
-			aRows.Scan(&a.ID, &a.Text, &a.IsCorrect, &a.OrderIndex)
-			if !withCorrect {
-				a.IsCorrect = false // скрываем правильный ответ для юзера
+	var questions []Question
+	for _, question := range q.Edges.Questions {
+		var answers []Answer
+		for _, a := range question.Edges.Answers {
+			answer := Answer{
+				ID:         a.ID.String(),
+				Text:       a.Text,
+				OrderIndex: a.OrderIndex,
 			}
-			question.Answers = append(question.Answers, a)
+			if withCorrect {
+				answer.IsCorrect = a.IsCorrect
+			}
+			answers = append(answers, answer)
 		}
-		aRows.Close()
-
-		q.Questions = append(q.Questions, question)
+		questions = append(questions, Question{
+			ID:         question.ID.String(),
+			Text:       question.Text,
+			OrderIndex: question.OrderIndex,
+			Answers:    answers,
+		})
 	}
 
-	return &QuizResponse{Quiz: q}, nil
+	return &QuizResponse{Quiz: Quiz{
+		ID:            q.ID.String(),
+		Title:         q.Title,
+		IsPublished:   q.IsPublished,
+		PassThreshold: q.PassThreshold,
+		OneAttempt:    q.OneAttempt,
+		ShowAnswers:   q.ShowAnswers,
+		Questions:     questions,
+	}}, nil
 }

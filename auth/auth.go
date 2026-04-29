@@ -5,25 +5,20 @@ import (
 	"errors"
 	"time"
 
+	"encore.app/ent"
+	entuser "encore.app/ent/user"
 	"encore.dev/beta/auth"
-	"encore.dev/storage/sqldb"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
-// База данных
-var db = sqldb.NewDatabase("quiz", sqldb.DatabaseConfig{
-    Migrations: "./migrations",
-})
-
 var jwtSecret = []byte("super-secret-key-change-in-prod")
-
-// ===== ТИПЫ =====
 
 type RegisterRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
-	Role     string `json:"role"` // "admin" или "user"
+	Role     string `json:"role"`
 }
 
 type LoginRequest struct {
@@ -42,8 +37,6 @@ type UserData struct {
 	Email  string
 }
 
-// ===== РЕГИСТРАЦИЯ =====
-
 //encore:api public method=POST path=/auth/register
 func Register(ctx context.Context, req *RegisterRequest) (*AuthResponse, error) {
 	if req.Email == "" || req.Password == "" {
@@ -53,24 +46,28 @@ func Register(ctx context.Context, req *RegisterRequest) (*AuthResponse, error) 
 		return nil, errors.New("роль должна быть admin или user")
 	}
 
-	// Хэшируем пароль (как hashlib в Python)
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err
 	}
 
-	// Сохраняем в БД
-	var userID string
-	err = db.QueryRow(ctx,
-		`INSERT INTO users (email, password_hash, role) VALUES ($1, $2, $3) RETURNING id`,
-		req.Email, string(hash), req.Role,
-	).Scan(&userID)
+	client, err := ent.OpenEntClient()
+	if err != nil {
+		return nil, err
+	}
+	defer client.Close()
+
+	user, err := client.User.Create().
+		SetEmail(req.Email).
+		SetPasswordHash(string(hash)).
+		SetRole(req.Role).
+		SetCreatedAt(time.Now()).
+		Save(ctx)
 	if err != nil {
 		return nil, errors.New("пользователь с таким email уже существует")
 	}
 
-	// Создаём JWT токен
-	token, err := createToken(userID, req.Email, req.Role)
+	token, err := createToken(user.ID.String(), req.Email, req.Role)
 	if err != nil {
 		return nil, err
 	}
@@ -78,40 +75,37 @@ func Register(ctx context.Context, req *RegisterRequest) (*AuthResponse, error) 
 	return &AuthResponse{Token: token, Role: req.Role}, nil
 }
 
-// ===== ВХОД =====
-
 //encore:api public method=POST path=/auth/login
 func Login(ctx context.Context, req *LoginRequest) (*AuthResponse, error) {
 	if req.Email == "" || req.Password == "" {
 		return nil, errors.New("email и пароль обязательны")
 	}
 
-	// Ищем пользователя в БД
-	var userID, passwordHash, role string
-	err := db.QueryRow(ctx,
-		`SELECT id, password_hash, role FROM users WHERE email = $1`,
-		req.Email,
-	).Scan(&userID, &passwordHash, &role)
+	client, err := ent.OpenEntClient()
+	if err != nil {
+		return nil, err
+	}
+	defer client.Close()
+
+	user, err := client.User.Query().
+		Where(entuser.Email(req.Email)).
+		Only(ctx)
 	if err != nil {
 		return nil, errors.New("неверный email или пароль")
 	}
 
-	// Проверяем пароль
-	err = bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(req.Password))
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password))
 	if err != nil {
 		return nil, errors.New("неверный email или пароль")
 	}
 
-	// Создаём токен
-	token, err := createToken(userID, req.Email, role)
+	token, err := createToken(user.ID.String(), req.Email, user.Role)
 	if err != nil {
 		return nil, err
 	}
 
-	return &AuthResponse{Token: token, Role: role}, nil
+	return &AuthResponse{Token: token, Role: user.Role}, nil
 }
-
-// ===== AUTH HANDLER (проверка токена для защищённых роутов) =====
 
 //encore:authhandler
 func AuthHandler(ctx context.Context, token string) (auth.UID, *UserData, error) {
@@ -134,8 +128,6 @@ func AuthHandler(ctx context.Context, token string) (auth.UID, *UserData, error)
 	}, nil
 }
 
-// ===== ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ =====
-
 func createToken(userID, email, role string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": userID,
@@ -145,3 +137,6 @@ func createToken(userID, email, role string) (string, error) {
 	})
 	return token.SignedString(jwtSecret)
 }
+
+// ensure uuid import is used
+var _ = uuid.UUID{}
