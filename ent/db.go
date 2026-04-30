@@ -7,7 +7,7 @@ entsql "entgo.io/ent/dialect/sql"
 )
 
 var quizDB = sqldb.NewDatabase("quiz", sqldb.DatabaseConfig{
-Migrations: "../auth/migrations",
+Migrations: "./migrations",
 })
 
 func OpenEntClient() (*Client, error) {
