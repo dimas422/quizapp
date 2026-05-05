@@ -66,6 +66,16 @@ func Total(v int) predicate.Attempt {
 	return predicate.Attempt(sql.FieldEQ(FieldTotal, v))
 }
 
+// QuizID applies equality check predicate on the "quiz_id" field. It's identical to QuizIDEQ.
+func QuizID(v uuid.UUID) predicate.Attempt {
+	return predicate.Attempt(sql.FieldEQ(FieldQuizID, v))
+}
+
+// UserID applies equality check predicate on the "user_id" field. It's identical to UserIDEQ.
+func UserID(v uuid.UUID) predicate.Attempt {
+	return predicate.Attempt(sql.FieldEQ(FieldUserID, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.Attempt {
 	return predicate.Attempt(sql.FieldEQ(FieldCreatedAt, v))
@@ -149,6 +159,66 @@ func TotalLT(v int) predicate.Attempt {
 // TotalLTE applies the LTE predicate on the "total" field.
 func TotalLTE(v int) predicate.Attempt {
 	return predicate.Attempt(sql.FieldLTE(FieldTotal, v))
+}
+
+// QuizIDEQ applies the EQ predicate on the "quiz_id" field.
+func QuizIDEQ(v uuid.UUID) predicate.Attempt {
+	return predicate.Attempt(sql.FieldEQ(FieldQuizID, v))
+}
+
+// QuizIDNEQ applies the NEQ predicate on the "quiz_id" field.
+func QuizIDNEQ(v uuid.UUID) predicate.Attempt {
+	return predicate.Attempt(sql.FieldNEQ(FieldQuizID, v))
+}
+
+// QuizIDIn applies the In predicate on the "quiz_id" field.
+func QuizIDIn(vs ...uuid.UUID) predicate.Attempt {
+	return predicate.Attempt(sql.FieldIn(FieldQuizID, vs...))
+}
+
+// QuizIDNotIn applies the NotIn predicate on the "quiz_id" field.
+func QuizIDNotIn(vs ...uuid.UUID) predicate.Attempt {
+	return predicate.Attempt(sql.FieldNotIn(FieldQuizID, vs...))
+}
+
+// QuizIDIsNil applies the IsNil predicate on the "quiz_id" field.
+func QuizIDIsNil() predicate.Attempt {
+	return predicate.Attempt(sql.FieldIsNull(FieldQuizID))
+}
+
+// QuizIDNotNil applies the NotNil predicate on the "quiz_id" field.
+func QuizIDNotNil() predicate.Attempt {
+	return predicate.Attempt(sql.FieldNotNull(FieldQuizID))
+}
+
+// UserIDEQ applies the EQ predicate on the "user_id" field.
+func UserIDEQ(v uuid.UUID) predicate.Attempt {
+	return predicate.Attempt(sql.FieldEQ(FieldUserID, v))
+}
+
+// UserIDNEQ applies the NEQ predicate on the "user_id" field.
+func UserIDNEQ(v uuid.UUID) predicate.Attempt {
+	return predicate.Attempt(sql.FieldNEQ(FieldUserID, v))
+}
+
+// UserIDIn applies the In predicate on the "user_id" field.
+func UserIDIn(vs ...uuid.UUID) predicate.Attempt {
+	return predicate.Attempt(sql.FieldIn(FieldUserID, vs...))
+}
+
+// UserIDNotIn applies the NotIn predicate on the "user_id" field.
+func UserIDNotIn(vs ...uuid.UUID) predicate.Attempt {
+	return predicate.Attempt(sql.FieldNotIn(FieldUserID, vs...))
+}
+
+// UserIDIsNil applies the IsNil predicate on the "user_id" field.
+func UserIDIsNil() predicate.Attempt {
+	return predicate.Attempt(sql.FieldIsNull(FieldUserID))
+}
+
+// UserIDNotNil applies the NotNil predicate on the "user_id" field.
+func UserIDNotNil() predicate.Attempt {
+	return predicate.Attempt(sql.FieldNotNull(FieldUserID))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

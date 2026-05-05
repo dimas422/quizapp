@@ -28,10 +28,10 @@ const (
 	// Table holds the table name of the user in the database.
 	Table = "users"
 	// QuizzesTable is the table that holds the quizzes relation/edge.
-	QuizzesTable = "quizs"
+	QuizzesTable = "quizzes"
 	// QuizzesInverseTable is the table name for the Quiz entity.
 	// It exists in this package in order to avoid circular dependency with the "quiz" package.
-	QuizzesInverseTable = "quizs"
+	QuizzesInverseTable = "quizzes"
 	// QuizzesColumn is the table column denoting the quizzes relation/edge.
 	QuizzesColumn = "user_quizzes"
 	// AttemptsTable is the table that holds the attempts relation/edge.
@@ -40,7 +40,7 @@ const (
 	// It exists in this package in order to avoid circular dependency with the "attempt" package.
 	AttemptsInverseTable = "attempts"
 	// AttemptsColumn is the table column denoting the attempts relation/edge.
-	AttemptsColumn = "user_attempts"
+	AttemptsColumn = "user_id"
 )
 
 // Columns holds all SQL columns for user fields.

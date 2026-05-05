@@ -16,8 +16,8 @@ func (Attempt) Fields() []ent.Field {
 		field.UUID("id", uuid.UUID{}).Default(uuid.New).Unique(),
 		field.Int("score"),
 		field.Int("total"),
-		field.UUID("quiz_id", uuid.UUID{}),
-		field.UUID("user_id", uuid.UUID{}),
+		field.UUID("quiz_id", uuid.UUID{}).Optional(),
+		field.UUID("user_id", uuid.UUID{}).Optional(),
 		field.Time("created_at").Optional(),
 	}
 }

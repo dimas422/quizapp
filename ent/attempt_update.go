@@ -74,6 +74,46 @@ func (_u *AttemptUpdate) AddTotal(v int) *AttemptUpdate {
 	return _u
 }
 
+// SetQuizID sets the "quiz_id" field.
+func (_u *AttemptUpdate) SetQuizID(v uuid.UUID) *AttemptUpdate {
+	_u.mutation.SetQuizID(v)
+	return _u
+}
+
+// SetNillableQuizID sets the "quiz_id" field if the given value is not nil.
+func (_u *AttemptUpdate) SetNillableQuizID(v *uuid.UUID) *AttemptUpdate {
+	if v != nil {
+		_u.SetQuizID(*v)
+	}
+	return _u
+}
+
+// ClearQuizID clears the value of the "quiz_id" field.
+func (_u *AttemptUpdate) ClearQuizID() *AttemptUpdate {
+	_u.mutation.ClearQuizID()
+	return _u
+}
+
+// SetUserID sets the "user_id" field.
+func (_u *AttemptUpdate) SetUserID(v uuid.UUID) *AttemptUpdate {
+	_u.mutation.SetUserID(v)
+	return _u
+}
+
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (_u *AttemptUpdate) SetNillableUserID(v *uuid.UUID) *AttemptUpdate {
+	if v != nil {
+		_u.SetUserID(*v)
+	}
+	return _u
+}
+
+// ClearUserID clears the value of the "user_id" field.
+func (_u *AttemptUpdate) ClearUserID() *AttemptUpdate {
+	_u.mutation.ClearUserID()
+	return _u
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_u *AttemptUpdate) SetCreatedAt(v time.Time) *AttemptUpdate {
 	_u.mutation.SetCreatedAt(v)
@@ -94,37 +134,9 @@ func (_u *AttemptUpdate) ClearCreatedAt() *AttemptUpdate {
 	return _u
 }
 
-// SetQuizID sets the "quiz" edge to the Quiz entity by ID.
-func (_u *AttemptUpdate) SetQuizID(id uuid.UUID) *AttemptUpdate {
-	_u.mutation.SetQuizID(id)
-	return _u
-}
-
-// SetNillableQuizID sets the "quiz" edge to the Quiz entity by ID if the given value is not nil.
-func (_u *AttemptUpdate) SetNillableQuizID(id *uuid.UUID) *AttemptUpdate {
-	if id != nil {
-		_u = _u.SetQuizID(*id)
-	}
-	return _u
-}
-
 // SetQuiz sets the "quiz" edge to the Quiz entity.
 func (_u *AttemptUpdate) SetQuiz(v *Quiz) *AttemptUpdate {
 	return _u.SetQuizID(v.ID)
-}
-
-// SetUserID sets the "user" edge to the User entity by ID.
-func (_u *AttemptUpdate) SetUserID(id uuid.UUID) *AttemptUpdate {
-	_u.mutation.SetUserID(id)
-	return _u
-}
-
-// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
-func (_u *AttemptUpdate) SetNillableUserID(id *uuid.UUID) *AttemptUpdate {
-	if id != nil {
-		_u = _u.SetUserID(*id)
-	}
-	return _u
 }
 
 // SetUser sets the "user" edge to the User entity.
@@ -404,6 +416,46 @@ func (_u *AttemptUpdateOne) AddTotal(v int) *AttemptUpdateOne {
 	return _u
 }
 
+// SetQuizID sets the "quiz_id" field.
+func (_u *AttemptUpdateOne) SetQuizID(v uuid.UUID) *AttemptUpdateOne {
+	_u.mutation.SetQuizID(v)
+	return _u
+}
+
+// SetNillableQuizID sets the "quiz_id" field if the given value is not nil.
+func (_u *AttemptUpdateOne) SetNillableQuizID(v *uuid.UUID) *AttemptUpdateOne {
+	if v != nil {
+		_u.SetQuizID(*v)
+	}
+	return _u
+}
+
+// ClearQuizID clears the value of the "quiz_id" field.
+func (_u *AttemptUpdateOne) ClearQuizID() *AttemptUpdateOne {
+	_u.mutation.ClearQuizID()
+	return _u
+}
+
+// SetUserID sets the "user_id" field.
+func (_u *AttemptUpdateOne) SetUserID(v uuid.UUID) *AttemptUpdateOne {
+	_u.mutation.SetUserID(v)
+	return _u
+}
+
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (_u *AttemptUpdateOne) SetNillableUserID(v *uuid.UUID) *AttemptUpdateOne {
+	if v != nil {
+		_u.SetUserID(*v)
+	}
+	return _u
+}
+
+// ClearUserID clears the value of the "user_id" field.
+func (_u *AttemptUpdateOne) ClearUserID() *AttemptUpdateOne {
+	_u.mutation.ClearUserID()
+	return _u
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_u *AttemptUpdateOne) SetCreatedAt(v time.Time) *AttemptUpdateOne {
 	_u.mutation.SetCreatedAt(v)
@@ -424,37 +476,9 @@ func (_u *AttemptUpdateOne) ClearCreatedAt() *AttemptUpdateOne {
 	return _u
 }
 
-// SetQuizID sets the "quiz" edge to the Quiz entity by ID.
-func (_u *AttemptUpdateOne) SetQuizID(id uuid.UUID) *AttemptUpdateOne {
-	_u.mutation.SetQuizID(id)
-	return _u
-}
-
-// SetNillableQuizID sets the "quiz" edge to the Quiz entity by ID if the given value is not nil.
-func (_u *AttemptUpdateOne) SetNillableQuizID(id *uuid.UUID) *AttemptUpdateOne {
-	if id != nil {
-		_u = _u.SetQuizID(*id)
-	}
-	return _u
-}
-
 // SetQuiz sets the "quiz" edge to the Quiz entity.
 func (_u *AttemptUpdateOne) SetQuiz(v *Quiz) *AttemptUpdateOne {
 	return _u.SetQuizID(v.ID)
-}
-
-// SetUserID sets the "user" edge to the User entity by ID.
-func (_u *AttemptUpdateOne) SetUserID(id uuid.UUID) *AttemptUpdateOne {
-	_u.mutation.SetUserID(id)
-	return _u
-}
-
-// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
-func (_u *AttemptUpdateOne) SetNillableUserID(id *uuid.UUID) *AttemptUpdateOne {
-	if id != nil {
-		_u = _u.SetUserID(*id)
-	}
-	return _u
 }
 
 // SetUser sets the "user" edge to the User entity.

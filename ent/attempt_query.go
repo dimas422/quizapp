@@ -30,7 +30,6 @@ type AttemptQuery struct {
 	withQuiz           *QuizQuery
 	withUser           *UserQuery
 	withAttemptAnswers *AttemptAnswerQuery
-	withFKs            bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -444,7 +443,6 @@ func (_q *AttemptQuery) prepareQuery(ctx context.Context) error {
 func (_q *AttemptQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Attempt, error) {
 	var (
 		nodes       = []*Attempt{}
-		withFKs     = _q.withFKs
 		_spec       = _q.querySpec()
 		loadedTypes = [3]bool{
 			_q.withQuiz != nil,
@@ -452,12 +450,6 @@ func (_q *AttemptQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Atte
 			_q.withAttemptAnswers != nil,
 		}
 	)
-	if _q.withQuiz != nil || _q.withUser != nil {
-		withFKs = true
-	}
-	if withFKs {
-		_spec.Node.Columns = append(_spec.Node.Columns, attempt.ForeignKeys...)
-	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Attempt).scanValues(nil, columns)
 	}
@@ -502,10 +494,7 @@ func (_q *AttemptQuery) loadQuiz(ctx context.Context, query *QuizQuery, nodes []
 	ids := make([]uuid.UUID, 0, len(nodes))
 	nodeids := make(map[uuid.UUID][]*Attempt)
 	for i := range nodes {
-		if nodes[i].quiz_attempts == nil {
-			continue
-		}
-		fk := *nodes[i].quiz_attempts
+		fk := nodes[i].QuizID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -522,7 +511,7 @@ func (_q *AttemptQuery) loadQuiz(ctx context.Context, query *QuizQuery, nodes []
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "quiz_attempts" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "quiz_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -534,10 +523,7 @@ func (_q *AttemptQuery) loadUser(ctx context.Context, query *UserQuery, nodes []
 	ids := make([]uuid.UUID, 0, len(nodes))
 	nodeids := make(map[uuid.UUID][]*Attempt)
 	for i := range nodes {
-		if nodes[i].user_attempts == nil {
-			continue
-		}
-		fk := *nodes[i].user_attempts
+		fk := nodes[i].UserID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -554,7 +540,7 @@ func (_q *AttemptQuery) loadUser(ctx context.Context, query *UserQuery, nodes []
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "user_attempts" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "user_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -618,6 +604,12 @@ func (_q *AttemptQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != attempt.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if _q.withQuiz != nil {
+			_spec.Node.AddColumnOnce(attempt.FieldQuizID)
+		}
+		if _q.withUser != nil {
+			_spec.Node.AddColumnOnce(attempt.FieldUserID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

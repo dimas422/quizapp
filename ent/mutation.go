@@ -906,6 +906,104 @@ func (m *AttemptMutation) ResetTotal() {
 	m.addtotal = nil
 }
 
+// SetQuizID sets the "quiz_id" field.
+func (m *AttemptMutation) SetQuizID(u uuid.UUID) {
+	m.quiz = &u
+}
+
+// QuizID returns the value of the "quiz_id" field in the mutation.
+func (m *AttemptMutation) QuizID() (r uuid.UUID, exists bool) {
+	v := m.quiz
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldQuizID returns the old "quiz_id" field's value of the Attempt entity.
+// If the Attempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AttemptMutation) OldQuizID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldQuizID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldQuizID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldQuizID: %w", err)
+	}
+	return oldValue.QuizID, nil
+}
+
+// ClearQuizID clears the value of the "quiz_id" field.
+func (m *AttemptMutation) ClearQuizID() {
+	m.quiz = nil
+	m.clearedFields[attempt.FieldQuizID] = struct{}{}
+}
+
+// QuizIDCleared returns if the "quiz_id" field was cleared in this mutation.
+func (m *AttemptMutation) QuizIDCleared() bool {
+	_, ok := m.clearedFields[attempt.FieldQuizID]
+	return ok
+}
+
+// ResetQuizID resets all changes to the "quiz_id" field.
+func (m *AttemptMutation) ResetQuizID() {
+	m.quiz = nil
+	delete(m.clearedFields, attempt.FieldQuizID)
+}
+
+// SetUserID sets the "user_id" field.
+func (m *AttemptMutation) SetUserID(u uuid.UUID) {
+	m.user = &u
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *AttemptMutation) UserID() (r uuid.UUID, exists bool) {
+	v := m.user
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the Attempt entity.
+// If the Attempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AttemptMutation) OldUserID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// ClearUserID clears the value of the "user_id" field.
+func (m *AttemptMutation) ClearUserID() {
+	m.user = nil
+	m.clearedFields[attempt.FieldUserID] = struct{}{}
+}
+
+// UserIDCleared returns if the "user_id" field was cleared in this mutation.
+func (m *AttemptMutation) UserIDCleared() bool {
+	_, ok := m.clearedFields[attempt.FieldUserID]
+	return ok
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *AttemptMutation) ResetUserID() {
+	m.user = nil
+	delete(m.clearedFields, attempt.FieldUserID)
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *AttemptMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -955,27 +1053,15 @@ func (m *AttemptMutation) ResetCreatedAt() {
 	delete(m.clearedFields, attempt.FieldCreatedAt)
 }
 
-// SetQuizID sets the "quiz" edge to the Quiz entity by id.
-func (m *AttemptMutation) SetQuizID(id uuid.UUID) {
-	m.quiz = &id
-}
-
 // ClearQuiz clears the "quiz" edge to the Quiz entity.
 func (m *AttemptMutation) ClearQuiz() {
 	m.clearedquiz = true
+	m.clearedFields[attempt.FieldQuizID] = struct{}{}
 }
 
 // QuizCleared reports if the "quiz" edge to the Quiz entity was cleared.
 func (m *AttemptMutation) QuizCleared() bool {
-	return m.clearedquiz
-}
-
-// QuizID returns the "quiz" edge ID in the mutation.
-func (m *AttemptMutation) QuizID() (id uuid.UUID, exists bool) {
-	if m.quiz != nil {
-		return *m.quiz, true
-	}
-	return
+	return m.QuizIDCleared() || m.clearedquiz
 }
 
 // QuizIDs returns the "quiz" edge IDs in the mutation.
@@ -994,27 +1080,15 @@ func (m *AttemptMutation) ResetQuiz() {
 	m.clearedquiz = false
 }
 
-// SetUserID sets the "user" edge to the User entity by id.
-func (m *AttemptMutation) SetUserID(id uuid.UUID) {
-	m.user = &id
-}
-
 // ClearUser clears the "user" edge to the User entity.
 func (m *AttemptMutation) ClearUser() {
 	m.cleareduser = true
+	m.clearedFields[attempt.FieldUserID] = struct{}{}
 }
 
 // UserCleared reports if the "user" edge to the User entity was cleared.
 func (m *AttemptMutation) UserCleared() bool {
-	return m.cleareduser
-}
-
-// UserID returns the "user" edge ID in the mutation.
-func (m *AttemptMutation) UserID() (id uuid.UUID, exists bool) {
-	if m.user != nil {
-		return *m.user, true
-	}
-	return
+	return m.UserIDCleared() || m.cleareduser
 }
 
 // UserIDs returns the "user" edge IDs in the mutation.
@@ -1121,12 +1195,18 @@ func (m *AttemptMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AttemptMutation) Fields() []string {
-	fields := make([]string, 0, 3)
+	fields := make([]string, 0, 5)
 	if m.score != nil {
 		fields = append(fields, attempt.FieldScore)
 	}
 	if m.total != nil {
 		fields = append(fields, attempt.FieldTotal)
+	}
+	if m.quiz != nil {
+		fields = append(fields, attempt.FieldQuizID)
+	}
+	if m.user != nil {
+		fields = append(fields, attempt.FieldUserID)
 	}
 	if m.created_at != nil {
 		fields = append(fields, attempt.FieldCreatedAt)
@@ -1143,6 +1223,10 @@ func (m *AttemptMutation) Field(name string) (ent.Value, bool) {
 		return m.Score()
 	case attempt.FieldTotal:
 		return m.Total()
+	case attempt.FieldQuizID:
+		return m.QuizID()
+	case attempt.FieldUserID:
+		return m.UserID()
 	case attempt.FieldCreatedAt:
 		return m.CreatedAt()
 	}
@@ -1158,6 +1242,10 @@ func (m *AttemptMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldScore(ctx)
 	case attempt.FieldTotal:
 		return m.OldTotal(ctx)
+	case attempt.FieldQuizID:
+		return m.OldQuizID(ctx)
+	case attempt.FieldUserID:
+		return m.OldUserID(ctx)
 	case attempt.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	}
@@ -1182,6 +1270,20 @@ func (m *AttemptMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetTotal(v)
+		return nil
+	case attempt.FieldQuizID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetQuizID(v)
+		return nil
+	case attempt.FieldUserID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
 		return nil
 	case attempt.FieldCreatedAt:
 		v, ok := value.(time.Time)
@@ -1247,6 +1349,12 @@ func (m *AttemptMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *AttemptMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(attempt.FieldQuizID) {
+		fields = append(fields, attempt.FieldQuizID)
+	}
+	if m.FieldCleared(attempt.FieldUserID) {
+		fields = append(fields, attempt.FieldUserID)
+	}
 	if m.FieldCleared(attempt.FieldCreatedAt) {
 		fields = append(fields, attempt.FieldCreatedAt)
 	}
@@ -1264,6 +1372,12 @@ func (m *AttemptMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *AttemptMutation) ClearField(name string) error {
 	switch name {
+	case attempt.FieldQuizID:
+		m.ClearQuizID()
+		return nil
+	case attempt.FieldUserID:
+		m.ClearUserID()
+		return nil
 	case attempt.FieldCreatedAt:
 		m.ClearCreatedAt()
 		return nil
@@ -1280,6 +1394,12 @@ func (m *AttemptMutation) ResetField(name string) error {
 		return nil
 	case attempt.FieldTotal:
 		m.ResetTotal()
+		return nil
+	case attempt.FieldQuizID:
+		m.ResetQuizID()
+		return nil
+	case attempt.FieldUserID:
+		m.ResetUserID()
 		return nil
 	case attempt.FieldCreatedAt:
 		m.ResetCreatedAt()

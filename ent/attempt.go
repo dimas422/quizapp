@@ -24,14 +24,16 @@ type Attempt struct {
 	Score int `json:"score,omitempty"`
 	// Total holds the value of the "total" field.
 	Total int `json:"total,omitempty"`
+	// QuizID holds the value of the "quiz_id" field.
+	QuizID uuid.UUID `json:"quiz_id,omitempty"`
+	// UserID holds the value of the "user_id" field.
+	UserID uuid.UUID `json:"user_id,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the AttemptQuery when eager-loading is set.
-	Edges         AttemptEdges `json:"edges"`
-	quiz_attempts *uuid.UUID
-	user_attempts *uuid.UUID
-	selectValues  sql.SelectValues
+	Edges        AttemptEdges `json:"edges"`
+	selectValues sql.SelectValues
 }
 
 // AttemptEdges holds the relations/edges for other nodes in the graph.
@@ -87,12 +89,8 @@ func (*Attempt) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case attempt.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
-		case attempt.FieldID:
+		case attempt.FieldID, attempt.FieldQuizID, attempt.FieldUserID:
 			values[i] = new(uuid.UUID)
-		case attempt.ForeignKeys[0]: // quiz_attempts
-			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
-		case attempt.ForeignKeys[1]: // user_attempts
-			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -126,25 +124,23 @@ func (_m *Attempt) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Total = int(value.Int64)
 			}
+		case attempt.FieldQuizID:
+			if value, ok := values[i].(*uuid.UUID); !ok {
+				return fmt.Errorf("unexpected type %T for field quiz_id", values[i])
+			} else if value != nil {
+				_m.QuizID = *value
+			}
+		case attempt.FieldUserID:
+			if value, ok := values[i].(*uuid.UUID); !ok {
+				return fmt.Errorf("unexpected type %T for field user_id", values[i])
+			} else if value != nil {
+				_m.UserID = *value
+			}
 		case attempt.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
 				_m.CreatedAt = value.Time
-			}
-		case attempt.ForeignKeys[0]:
-			if value, ok := values[i].(*sql.NullScanner); !ok {
-				return fmt.Errorf("unexpected type %T for field quiz_attempts", values[i])
-			} else if value.Valid {
-				_m.quiz_attempts = new(uuid.UUID)
-				*_m.quiz_attempts = *value.S.(*uuid.UUID)
-			}
-		case attempt.ForeignKeys[1]:
-			if value, ok := values[i].(*sql.NullScanner); !ok {
-				return fmt.Errorf("unexpected type %T for field user_attempts", values[i])
-			} else if value.Valid {
-				_m.user_attempts = new(uuid.UUID)
-				*_m.user_attempts = *value.S.(*uuid.UUID)
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -202,6 +198,12 @@ func (_m *Attempt) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("total=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Total))
+	builder.WriteString(", ")
+	builder.WriteString("quiz_id=")
+	builder.WriteString(fmt.Sprintf("%v", _m.QuizID))
+	builder.WriteString(", ")
+	builder.WriteString("user_id=")
+	builder.WriteString(fmt.Sprintf("%v", _m.UserID))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))

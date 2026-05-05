@@ -29,7 +29,7 @@ const (
 	QuizTable = "questions"
 	// QuizInverseTable is the table name for the Quiz entity.
 	// It exists in this package in order to avoid circular dependency with the "quiz" package.
-	QuizInverseTable = "quizs"
+	QuizInverseTable = "quizzes"
 	// QuizColumn is the table column denoting the quiz relation/edge.
 	QuizColumn = "quiz_questions"
 	// AnswersTable is the table that holds the answers relation/edge.

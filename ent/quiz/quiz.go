@@ -32,9 +32,9 @@ const (
 	// EdgeAttempts holds the string denoting the attempts edge name in mutations.
 	EdgeAttempts = "attempts"
 	// Table holds the table name of the quiz in the database.
-	Table = "quizs"
+	Table = "quizzes"
 	// CreatedByTable is the table that holds the created_by relation/edge.
-	CreatedByTable = "quizs"
+	CreatedByTable = "quizzes"
 	// CreatedByInverseTable is the table name for the User entity.
 	// It exists in this package in order to avoid circular dependency with the "user" package.
 	CreatedByInverseTable = "users"
@@ -53,7 +53,7 @@ const (
 	// It exists in this package in order to avoid circular dependency with the "attempt" package.
 	AttemptsInverseTable = "attempts"
 	// AttemptsColumn is the table column denoting the attempts relation/edge.
-	AttemptsColumn = "quiz_attempts"
+	AttemptsColumn = "quiz_id"
 )
 
 // Columns holds all SQL columns for quiz fields.
@@ -67,7 +67,7 @@ var Columns = []string{
 	FieldCreatedAt,
 }
 
-// ForeignKeys holds the SQL foreign-keys that are owned by the "quizs"
+// ForeignKeys holds the SQL foreign-keys that are owned by the "quizzes"
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
 	"user_quizzes",

@@ -36,6 +36,34 @@ func (_c *AttemptCreate) SetTotal(v int) *AttemptCreate {
 	return _c
 }
 
+// SetQuizID sets the "quiz_id" field.
+func (_c *AttemptCreate) SetQuizID(v uuid.UUID) *AttemptCreate {
+	_c.mutation.SetQuizID(v)
+	return _c
+}
+
+// SetNillableQuizID sets the "quiz_id" field if the given value is not nil.
+func (_c *AttemptCreate) SetNillableQuizID(v *uuid.UUID) *AttemptCreate {
+	if v != nil {
+		_c.SetQuizID(*v)
+	}
+	return _c
+}
+
+// SetUserID sets the "user_id" field.
+func (_c *AttemptCreate) SetUserID(v uuid.UUID) *AttemptCreate {
+	_c.mutation.SetUserID(v)
+	return _c
+}
+
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (_c *AttemptCreate) SetNillableUserID(v *uuid.UUID) *AttemptCreate {
+	if v != nil {
+		_c.SetUserID(*v)
+	}
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *AttemptCreate) SetCreatedAt(v time.Time) *AttemptCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -64,37 +92,9 @@ func (_c *AttemptCreate) SetNillableID(v *uuid.UUID) *AttemptCreate {
 	return _c
 }
 
-// SetQuizID sets the "quiz" edge to the Quiz entity by ID.
-func (_c *AttemptCreate) SetQuizID(id uuid.UUID) *AttemptCreate {
-	_c.mutation.SetQuizID(id)
-	return _c
-}
-
-// SetNillableQuizID sets the "quiz" edge to the Quiz entity by ID if the given value is not nil.
-func (_c *AttemptCreate) SetNillableQuizID(id *uuid.UUID) *AttemptCreate {
-	if id != nil {
-		_c = _c.SetQuizID(*id)
-	}
-	return _c
-}
-
 // SetQuiz sets the "quiz" edge to the Quiz entity.
 func (_c *AttemptCreate) SetQuiz(v *Quiz) *AttemptCreate {
 	return _c.SetQuizID(v.ID)
-}
-
-// SetUserID sets the "user" edge to the User entity by ID.
-func (_c *AttemptCreate) SetUserID(id uuid.UUID) *AttemptCreate {
-	_c.mutation.SetUserID(id)
-	return _c
-}
-
-// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
-func (_c *AttemptCreate) SetNillableUserID(id *uuid.UUID) *AttemptCreate {
-	if id != nil {
-		_c = _c.SetUserID(*id)
-	}
-	return _c
 }
 
 // SetUser sets the "user" edge to the User entity.
@@ -227,7 +227,7 @@ func (_c *AttemptCreate) createSpec() (*Attempt, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.quiz_attempts = &nodes[0]
+		_node.QuizID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.UserIDs(); len(nodes) > 0 {
@@ -244,7 +244,7 @@ func (_c *AttemptCreate) createSpec() (*Attempt, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.user_attempts = &nodes[0]
+		_node.UserID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.AttemptAnswersIDs(); len(nodes) > 0 {

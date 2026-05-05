@@ -17,6 +17,10 @@ const (
 	FieldScore = "score"
 	// FieldTotal holds the string denoting the total field in the database.
 	FieldTotal = "total"
+	// FieldQuizID holds the string denoting the quiz_id field in the database.
+	FieldQuizID = "quiz_id"
+	// FieldUserID holds the string denoting the user_id field in the database.
+	FieldUserID = "user_id"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// EdgeQuiz holds the string denoting the quiz edge name in mutations.
@@ -31,16 +35,16 @@ const (
 	QuizTable = "attempts"
 	// QuizInverseTable is the table name for the Quiz entity.
 	// It exists in this package in order to avoid circular dependency with the "quiz" package.
-	QuizInverseTable = "quizs"
+	QuizInverseTable = "quizzes"
 	// QuizColumn is the table column denoting the quiz relation/edge.
-	QuizColumn = "quiz_attempts"
+	QuizColumn = "quiz_id"
 	// UserTable is the table that holds the user relation/edge.
 	UserTable = "attempts"
 	// UserInverseTable is the table name for the User entity.
 	// It exists in this package in order to avoid circular dependency with the "user" package.
 	UserInverseTable = "users"
 	// UserColumn is the table column denoting the user relation/edge.
-	UserColumn = "user_attempts"
+	UserColumn = "user_id"
 	// AttemptAnswersTable is the table that holds the attempt_answers relation/edge.
 	AttemptAnswersTable = "attempt_answers"
 	// AttemptAnswersInverseTable is the table name for the AttemptAnswer entity.
@@ -55,25 +59,15 @@ var Columns = []string{
 	FieldID,
 	FieldScore,
 	FieldTotal,
+	FieldQuizID,
+	FieldUserID,
 	FieldCreatedAt,
-}
-
-// ForeignKeys holds the SQL foreign-keys that are owned by the "attempts"
-// table and are not defined as standalone fields in the schema.
-var ForeignKeys = []string{
-	"quiz_attempts",
-	"user_attempts",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
-			return true
-		}
-	}
-	for i := range ForeignKeys {
-		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -101,6 +95,16 @@ func ByScore(opts ...sql.OrderTermOption) OrderOption {
 // ByTotal orders the results by the total field.
 func ByTotal(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTotal, opts...).ToFunc()
+}
+
+// ByQuizID orders the results by the quiz_id field.
+func ByQuizID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldQuizID, opts...).ToFunc()
+}
+
+// ByUserID orders the results by the user_id field.
+func ByUserID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUserID, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

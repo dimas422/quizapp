@@ -3,6 +3,7 @@
 package migrate
 
 import (
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/dialect/sql/schema"
 	"entgo.io/ent/schema/field"
 )
@@ -36,8 +37,8 @@ var (
 		{Name: "score", Type: field.TypeInt},
 		{Name: "total", Type: field.TypeInt},
 		{Name: "created_at", Type: field.TypeTime, Nullable: true},
-		{Name: "quiz_attempts", Type: field.TypeUUID, Nullable: true},
-		{Name: "user_attempts", Type: field.TypeUUID, Nullable: true},
+		{Name: "quiz_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "user_id", Type: field.TypeUUID, Nullable: true},
 	}
 	// AttemptsTable holds the schema information for the "attempts" table.
 	AttemptsTable = &schema.Table{
@@ -46,9 +47,9 @@ var (
 		PrimaryKey: []*schema.Column{AttemptsColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "attempts_quizs_attempts",
+				Symbol:     "attempts_quizzes_attempts",
 				Columns:    []*schema.Column{AttemptsColumns[4]},
-				RefColumns: []*schema.Column{QuizsColumns[0]},
+				RefColumns: []*schema.Column{QuizzesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
@@ -106,15 +107,15 @@ var (
 		PrimaryKey: []*schema.Column{QuestionsColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "questions_quizs_questions",
+				Symbol:     "questions_quizzes_questions",
 				Columns:    []*schema.Column{QuestionsColumns[3]},
-				RefColumns: []*schema.Column{QuizsColumns[0]},
+				RefColumns: []*schema.Column{QuizzesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 		},
 	}
-	// QuizsColumns holds the columns for the "quizs" table.
-	QuizsColumns = []*schema.Column{
+	// QuizzesColumns holds the columns for the "quizzes" table.
+	QuizzesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID, Unique: true},
 		{Name: "title", Type: field.TypeString},
 		{Name: "is_published", Type: field.TypeBool, Default: false},
@@ -124,15 +125,15 @@ var (
 		{Name: "created_at", Type: field.TypeTime, Nullable: true},
 		{Name: "user_quizzes", Type: field.TypeUUID, Nullable: true},
 	}
-	// QuizsTable holds the schema information for the "quizs" table.
-	QuizsTable = &schema.Table{
-		Name:       "quizs",
-		Columns:    QuizsColumns,
-		PrimaryKey: []*schema.Column{QuizsColumns[0]},
+	// QuizzesTable holds the schema information for the "quizzes" table.
+	QuizzesTable = &schema.Table{
+		Name:       "quizzes",
+		Columns:    QuizzesColumns,
+		PrimaryKey: []*schema.Column{QuizzesColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "quizs_users_quizzes",
-				Columns:    []*schema.Column{QuizsColumns[7]},
+				Symbol:     "quizzes_users_quizzes",
+				Columns:    []*schema.Column{QuizzesColumns[7]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -158,18 +159,24 @@ var (
 		AttemptsTable,
 		AttemptAnswersTable,
 		QuestionsTable,
-		QuizsTable,
+		QuizzesTable,
 		UsersTable,
 	}
 )
 
 func init() {
 	AnswersTable.ForeignKeys[0].RefTable = QuestionsTable
-	AttemptsTable.ForeignKeys[0].RefTable = QuizsTable
+	AttemptsTable.ForeignKeys[0].RefTable = QuizzesTable
 	AttemptsTable.ForeignKeys[1].RefTable = UsersTable
 	AttemptAnswersTable.ForeignKeys[0].RefTable = AnswersTable
 	AttemptAnswersTable.ForeignKeys[1].RefTable = AttemptsTable
 	AttemptAnswersTable.ForeignKeys[2].RefTable = QuestionsTable
-	QuestionsTable.ForeignKeys[0].RefTable = QuizsTable
-	QuizsTable.ForeignKeys[0].RefTable = UsersTable
+	AttemptAnswersTable.Annotation = &entsql.Annotation{
+		Table: "attempt_answers",
+	}
+	QuestionsTable.ForeignKeys[0].RefTable = QuizzesTable
+	QuizzesTable.ForeignKeys[0].RefTable = UsersTable
+	QuizzesTable.Annotation = &entsql.Annotation{
+		Table: "quizzes",
+	}
 }
