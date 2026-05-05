@@ -9,12 +9,22 @@ import (
 	entquestion "encore.app/ent/question"
 	entquiz "encore.app/ent/quiz"
 	"encore.dev/beta/auth"
-"encore.dev/storage/sqldb"
+	"encore.dev/storage/sqldb"
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
 )
 
 var quizDB = sqldb.Named("quiz")
+
+var entClient *ent.Client
+
+func init() {
+	var err error
+	entClient, err = ent.OpenEntClient(quizDB.Stdlib())
+	if err != nil {
+		panic(err)
+	}
+}
 
 // ===== ТИПЫ =====
 
@@ -124,11 +134,7 @@ func AdminListQuizzes(ctx context.Context) (*QuizListResponse, error) {
 		return nil, errors.New("доступ запрещён")
 	}
 
-	client, err := ent.OpenEntClient(quizDB.Stdlib())
-	if err != nil {
-		return nil, err
-	}
-	defer client.Close()
+	client := entClient
 
 	quizzes, err := client.Quiz.Query().WithQuestions().All(ctx)
 	if err != nil {
@@ -168,11 +174,7 @@ func AdminCreateQuiz(ctx context.Context, req *CreateQuizRequest) (*QuizResponse
 		return nil, errors.New("минимум 1 вопрос")
 	}
 
-	client, err := ent.OpenEntClient(quizDB.Stdlib())
-	if err != nil {
-		return nil, err
-	}
-	defer client.Close()
+	client := entClient
 
 	q, err := client.Quiz.Create().
 		SetTitle(req.Title).
@@ -236,11 +238,7 @@ func AdminUpdateQuiz(ctx context.Context, id string, req *CreateQuizRequest) (*Q
 		return nil, errors.New("название обязательно")
 	}
 
-	client, err := ent.OpenEntClient(quizDB.Stdlib())
-	if err != nil {
-		return nil, err
-	}
-	defer client.Close()
+	client := entClient
 
 	uid, err := uuid.Parse(id)
 	if err != nil {
@@ -307,11 +305,7 @@ func AdminDeleteQuiz(ctx context.Context, id string) (*MessageResponse, error) {
 		return nil, errors.New("доступ запрещён")
 	}
 
-	client, err := ent.OpenEntClient(quizDB.Stdlib())
-	if err != nil {
-		return nil, err
-	}
-	defer client.Close()
+	client := entClient
 
 	uid, err := uuid.Parse(id)
 	if err != nil {
@@ -334,11 +328,7 @@ func AdminPublishQuiz(ctx context.Context, id string, req *PublishRequest) (*Mes
 		return nil, errors.New("доступ запрещён")
 	}
 
-	client, err := ent.OpenEntClient(quizDB.Stdlib())
-	if err != nil {
-		return nil, err
-	}
-	defer client.Close()
+	client := entClient
 
 	uid, err := uuid.Parse(id)
 	if err != nil {
@@ -358,11 +348,7 @@ func AdminPublishQuiz(ctx context.Context, id string, req *PublishRequest) (*Mes
 
 //encore:api auth method=GET path=/quizzes
 func ListQuizzes(ctx context.Context) (*QuizListResponse, error) {
-	client, err := ent.OpenEntClient(quizDB.Stdlib())
-	if err != nil {
-		return nil, err
-	}
-	defer client.Close()
+	client := entClient
 
 	quizzes, err := client.Quiz.Query().
 		Where(entquiz.IsPublished(true)).
@@ -403,11 +389,7 @@ func GetQuiz(ctx context.Context, id string) (*QuizResponse, error) {
 func SubmitQuiz(ctx context.Context, id string, req *SubmitRequest) (*SubmitResult, error) {
 	ud := auth.Data().(*UserData)
 
-	client, err := ent.OpenEntClient(quizDB.Stdlib())
-	if err != nil {
-		return nil, err
-	}
-	defer client.Close()
+	client := entClient
 
 	uid, err := uuid.Parse(id)
 	if err != nil {
@@ -509,11 +491,7 @@ func SubmitQuiz(ctx context.Context, id string, req *SubmitRequest) (*SubmitResu
 // ===== ВСПОМОГАТЕЛЬНАЯ =====
 
 func getQuizByID(ctx context.Context, id string, withCorrect bool) (*QuizResponse, error) {
-	client, err := ent.OpenEntClient(quizDB.Stdlib())
-	if err != nil {
-		return nil, err
-	}
-	defer client.Close()
+	client := entClient
 
 	uid, err := uuid.Parse(id)
 	if err != nil {
@@ -562,7 +540,3 @@ func getQuizByID(ctx context.Context, id string, withCorrect bool) (*QuizRespons
 		Questions:     questions,
 	}}, nil
 }
-
-
-
-
