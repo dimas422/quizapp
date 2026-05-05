@@ -79,17 +79,23 @@ func (_u *AnswerUpdate) AddOrderIndex(v int) *AnswerUpdate {
 	return _u
 }
 
-// SetQuestionID sets the "question" edge to the Question entity by ID.
-func (_u *AnswerUpdate) SetQuestionID(id uuid.UUID) *AnswerUpdate {
-	_u.mutation.SetQuestionID(id)
+// SetQuestionID sets the "question_id" field.
+func (_u *AnswerUpdate) SetQuestionID(v uuid.UUID) *AnswerUpdate {
+	_u.mutation.SetQuestionID(v)
 	return _u
 }
 
-// SetNillableQuestionID sets the "question" edge to the Question entity by ID if the given value is not nil.
-func (_u *AnswerUpdate) SetNillableQuestionID(id *uuid.UUID) *AnswerUpdate {
-	if id != nil {
-		_u = _u.SetQuestionID(*id)
+// SetNillableQuestionID sets the "question_id" field if the given value is not nil.
+func (_u *AnswerUpdate) SetNillableQuestionID(v *uuid.UUID) *AnswerUpdate {
+	if v != nil {
+		_u.SetQuestionID(*v)
 	}
+	return _u
+}
+
+// ClearQuestionID clears the value of the "question_id" field.
+func (_u *AnswerUpdate) ClearQuestionID() *AnswerUpdate {
+	_u.mutation.ClearQuestionID()
 	return _u
 }
 
@@ -336,17 +342,23 @@ func (_u *AnswerUpdateOne) AddOrderIndex(v int) *AnswerUpdateOne {
 	return _u
 }
 
-// SetQuestionID sets the "question" edge to the Question entity by ID.
-func (_u *AnswerUpdateOne) SetQuestionID(id uuid.UUID) *AnswerUpdateOne {
-	_u.mutation.SetQuestionID(id)
+// SetQuestionID sets the "question_id" field.
+func (_u *AnswerUpdateOne) SetQuestionID(v uuid.UUID) *AnswerUpdateOne {
+	_u.mutation.SetQuestionID(v)
 	return _u
 }
 
-// SetNillableQuestionID sets the "question" edge to the Question entity by ID if the given value is not nil.
-func (_u *AnswerUpdateOne) SetNillableQuestionID(id *uuid.UUID) *AnswerUpdateOne {
-	if id != nil {
-		_u = _u.SetQuestionID(*id)
+// SetNillableQuestionID sets the "question_id" field if the given value is not nil.
+func (_u *AnswerUpdateOne) SetNillableQuestionID(v *uuid.UUID) *AnswerUpdateOne {
+	if v != nil {
+		_u.SetQuestionID(*v)
 	}
+	return _u
+}
+
+// ClearQuestionID clears the value of the "question_id" field.
+func (_u *AnswerUpdateOne) ClearQuestionID() *AnswerUpdateOne {
+	_u.mutation.ClearQuestionID()
 	return _u
 }
 

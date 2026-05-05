@@ -17,6 +17,8 @@ const (
 	FieldText = "text"
 	// FieldOrderIndex holds the string denoting the order_index field in the database.
 	FieldOrderIndex = "order_index"
+	// FieldQuizID holds the string denoting the quiz_id field in the database.
+	FieldQuizID = "quiz_id"
 	// EdgeQuiz holds the string denoting the quiz edge name in mutations.
 	EdgeQuiz = "quiz"
 	// EdgeAnswers holds the string denoting the answers edge name in mutations.
@@ -31,14 +33,14 @@ const (
 	// It exists in this package in order to avoid circular dependency with the "quiz" package.
 	QuizInverseTable = "quizzes"
 	// QuizColumn is the table column denoting the quiz relation/edge.
-	QuizColumn = "quiz_questions"
+	QuizColumn = "quiz_id"
 	// AnswersTable is the table that holds the answers relation/edge.
 	AnswersTable = "answers"
 	// AnswersInverseTable is the table name for the Answer entity.
 	// It exists in this package in order to avoid circular dependency with the "answer" package.
 	AnswersInverseTable = "answers"
 	// AnswersColumn is the table column denoting the answers relation/edge.
-	AnswersColumn = "question_answers"
+	AnswersColumn = "question_id"
 	// AttemptAnswersTable is the table that holds the attempt_answers relation/edge.
 	AttemptAnswersTable = "attempt_answers"
 	// AttemptAnswersInverseTable is the table name for the AttemptAnswer entity.
@@ -53,23 +55,13 @@ var Columns = []string{
 	FieldID,
 	FieldText,
 	FieldOrderIndex,
-}
-
-// ForeignKeys holds the SQL foreign-keys that are owned by the "questions"
-// table and are not defined as standalone fields in the schema.
-var ForeignKeys = []string{
-	"quiz_questions",
+	FieldQuizID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
-			return true
-		}
-	}
-	for i := range ForeignKeys {
-		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -99,6 +91,11 @@ func ByText(opts ...sql.OrderTermOption) OrderOption {
 // ByOrderIndex orders the results by the order_index field.
 func ByOrderIndex(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldOrderIndex, opts...).ToFunc()
+}
+
+// ByQuizID orders the results by the quiz_id field.
+func ByQuizID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldQuizID, opts...).ToFunc()
 }
 
 // ByQuizField orders the results by quiz field.

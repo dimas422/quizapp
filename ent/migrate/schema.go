@@ -15,7 +15,7 @@ var (
 		{Name: "text", Type: field.TypeString},
 		{Name: "is_correct", Type: field.TypeBool, Default: false},
 		{Name: "order_index", Type: field.TypeInt, Default: 0},
-		{Name: "question_answers", Type: field.TypeUUID, Nullable: true},
+		{Name: "question_id", Type: field.TypeUUID, Nullable: true},
 	}
 	// AnswersTable holds the schema information for the "answers" table.
 	AnswersTable = &schema.Table{
@@ -98,7 +98,7 @@ var (
 		{Name: "id", Type: field.TypeUUID, Unique: true},
 		{Name: "text", Type: field.TypeString},
 		{Name: "order_index", Type: field.TypeInt, Default: 0},
-		{Name: "quiz_questions", Type: field.TypeUUID, Nullable: true},
+		{Name: "quiz_id", Type: field.TypeUUID, Nullable: true},
 	}
 	// QuestionsTable holds the schema information for the "questions" table.
 	QuestionsTable = &schema.Table{

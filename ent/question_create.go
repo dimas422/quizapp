@@ -43,6 +43,20 @@ func (_c *QuestionCreate) SetNillableOrderIndex(v *int) *QuestionCreate {
 	return _c
 }
 
+// SetQuizID sets the "quiz_id" field.
+func (_c *QuestionCreate) SetQuizID(v uuid.UUID) *QuestionCreate {
+	_c.mutation.SetQuizID(v)
+	return _c
+}
+
+// SetNillableQuizID sets the "quiz_id" field if the given value is not nil.
+func (_c *QuestionCreate) SetNillableQuizID(v *uuid.UUID) *QuestionCreate {
+	if v != nil {
+		_c.SetQuizID(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *QuestionCreate) SetID(v uuid.UUID) *QuestionCreate {
 	_c.mutation.SetID(v)
@@ -53,20 +67,6 @@ func (_c *QuestionCreate) SetID(v uuid.UUID) *QuestionCreate {
 func (_c *QuestionCreate) SetNillableID(v *uuid.UUID) *QuestionCreate {
 	if v != nil {
 		_c.SetID(*v)
-	}
-	return _c
-}
-
-// SetQuizID sets the "quiz" edge to the Quiz entity by ID.
-func (_c *QuestionCreate) SetQuizID(id uuid.UUID) *QuestionCreate {
-	_c.mutation.SetQuizID(id)
-	return _c
-}
-
-// SetNillableQuizID sets the "quiz" edge to the Quiz entity by ID if the given value is not nil.
-func (_c *QuestionCreate) SetNillableQuizID(id *uuid.UUID) *QuestionCreate {
-	if id != nil {
-		_c = _c.SetQuizID(*id)
 	}
 	return _c
 }
@@ -216,7 +216,7 @@ func (_c *QuestionCreate) createSpec() (*Question, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.quiz_questions = &nodes[0]
+		_node.QuizID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.AnswersIDs(); len(nodes) > 0 {

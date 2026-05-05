@@ -541,7 +541,9 @@ func (_q *QuizQuery) loadQuestions(ctx context.Context, query *QuestionQuery, no
 			init(nodes[i])
 		}
 	}
-	query.withFKs = true
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(question.FieldQuizID)
+	}
 	query.Where(predicate.Question(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(quiz.QuestionsColumn), fks...))
 	}))
@@ -550,13 +552,10 @@ func (_q *QuizQuery) loadQuestions(ctx context.Context, query *QuestionQuery, no
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.quiz_questions
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "quiz_questions" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
+		fk := n.QuizID
+		node, ok := nodeids[fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "quiz_questions" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "quiz_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}

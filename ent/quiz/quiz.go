@@ -46,7 +46,7 @@ const (
 	// It exists in this package in order to avoid circular dependency with the "question" package.
 	QuestionsInverseTable = "questions"
 	// QuestionsColumn is the table column denoting the questions relation/edge.
-	QuestionsColumn = "quiz_questions"
+	QuestionsColumn = "quiz_id"
 	// AttemptsTable is the table that holds the attempts relation/edge.
 	AttemptsTable = "attempts"
 	// AttemptsInverseTable is the table name for the Attempt entity.

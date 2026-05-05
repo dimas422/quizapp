@@ -291,27 +291,64 @@ func (m *AnswerMutation) ResetOrderIndex() {
 	m.addorder_index = nil
 }
 
-// SetQuestionID sets the "question" edge to the Question entity by id.
-func (m *AnswerMutation) SetQuestionID(id uuid.UUID) {
-	m.question = &id
+// SetQuestionID sets the "question_id" field.
+func (m *AnswerMutation) SetQuestionID(u uuid.UUID) {
+	m.question = &u
+}
+
+// QuestionID returns the value of the "question_id" field in the mutation.
+func (m *AnswerMutation) QuestionID() (r uuid.UUID, exists bool) {
+	v := m.question
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldQuestionID returns the old "question_id" field's value of the Answer entity.
+// If the Answer object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AnswerMutation) OldQuestionID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldQuestionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldQuestionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldQuestionID: %w", err)
+	}
+	return oldValue.QuestionID, nil
+}
+
+// ClearQuestionID clears the value of the "question_id" field.
+func (m *AnswerMutation) ClearQuestionID() {
+	m.question = nil
+	m.clearedFields[answer.FieldQuestionID] = struct{}{}
+}
+
+// QuestionIDCleared returns if the "question_id" field was cleared in this mutation.
+func (m *AnswerMutation) QuestionIDCleared() bool {
+	_, ok := m.clearedFields[answer.FieldQuestionID]
+	return ok
+}
+
+// ResetQuestionID resets all changes to the "question_id" field.
+func (m *AnswerMutation) ResetQuestionID() {
+	m.question = nil
+	delete(m.clearedFields, answer.FieldQuestionID)
 }
 
 // ClearQuestion clears the "question" edge to the Question entity.
 func (m *AnswerMutation) ClearQuestion() {
 	m.clearedquestion = true
+	m.clearedFields[answer.FieldQuestionID] = struct{}{}
 }
 
 // QuestionCleared reports if the "question" edge to the Question entity was cleared.
 func (m *AnswerMutation) QuestionCleared() bool {
-	return m.clearedquestion
-}
-
-// QuestionID returns the "question" edge ID in the mutation.
-func (m *AnswerMutation) QuestionID() (id uuid.UUID, exists bool) {
-	if m.question != nil {
-		return *m.question, true
-	}
-	return
+	return m.QuestionIDCleared() || m.clearedquestion
 }
 
 // QuestionIDs returns the "question" edge IDs in the mutation.
@@ -418,7 +455,7 @@ func (m *AnswerMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AnswerMutation) Fields() []string {
-	fields := make([]string, 0, 3)
+	fields := make([]string, 0, 4)
 	if m.text != nil {
 		fields = append(fields, answer.FieldText)
 	}
@@ -427,6 +464,9 @@ func (m *AnswerMutation) Fields() []string {
 	}
 	if m.order_index != nil {
 		fields = append(fields, answer.FieldOrderIndex)
+	}
+	if m.question != nil {
+		fields = append(fields, answer.FieldQuestionID)
 	}
 	return fields
 }
@@ -442,6 +482,8 @@ func (m *AnswerMutation) Field(name string) (ent.Value, bool) {
 		return m.IsCorrect()
 	case answer.FieldOrderIndex:
 		return m.OrderIndex()
+	case answer.FieldQuestionID:
+		return m.QuestionID()
 	}
 	return nil, false
 }
@@ -457,6 +499,8 @@ func (m *AnswerMutation) OldField(ctx context.Context, name string) (ent.Value, 
 		return m.OldIsCorrect(ctx)
 	case answer.FieldOrderIndex:
 		return m.OldOrderIndex(ctx)
+	case answer.FieldQuestionID:
+		return m.OldQuestionID(ctx)
 	}
 	return nil, fmt.Errorf("unknown Answer field %s", name)
 }
@@ -486,6 +530,13 @@ func (m *AnswerMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetOrderIndex(v)
+		return nil
+	case answer.FieldQuestionID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetQuestionID(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Answer field %s", name)
@@ -531,7 +582,11 @@ func (m *AnswerMutation) AddField(name string, value ent.Value) error {
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *AnswerMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(answer.FieldQuestionID) {
+		fields = append(fields, answer.FieldQuestionID)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -544,6 +599,11 @@ func (m *AnswerMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *AnswerMutation) ClearField(name string) error {
+	switch name {
+	case answer.FieldQuestionID:
+		m.ClearQuestionID()
+		return nil
+	}
 	return fmt.Errorf("unknown Answer nullable field %s", name)
 }
 
@@ -559,6 +619,9 @@ func (m *AnswerMutation) ResetField(name string) error {
 		return nil
 	case answer.FieldOrderIndex:
 		m.ResetOrderIndex()
+		return nil
+	case answer.FieldQuestionID:
+		m.ResetQuestionID()
 		return nil
 	}
 	return fmt.Errorf("unknown Answer field %s", name)
@@ -2202,27 +2265,64 @@ func (m *QuestionMutation) ResetOrderIndex() {
 	m.addorder_index = nil
 }
 
-// SetQuizID sets the "quiz" edge to the Quiz entity by id.
-func (m *QuestionMutation) SetQuizID(id uuid.UUID) {
-	m.quiz = &id
+// SetQuizID sets the "quiz_id" field.
+func (m *QuestionMutation) SetQuizID(u uuid.UUID) {
+	m.quiz = &u
+}
+
+// QuizID returns the value of the "quiz_id" field in the mutation.
+func (m *QuestionMutation) QuizID() (r uuid.UUID, exists bool) {
+	v := m.quiz
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldQuizID returns the old "quiz_id" field's value of the Question entity.
+// If the Question object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuestionMutation) OldQuizID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldQuizID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldQuizID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldQuizID: %w", err)
+	}
+	return oldValue.QuizID, nil
+}
+
+// ClearQuizID clears the value of the "quiz_id" field.
+func (m *QuestionMutation) ClearQuizID() {
+	m.quiz = nil
+	m.clearedFields[question.FieldQuizID] = struct{}{}
+}
+
+// QuizIDCleared returns if the "quiz_id" field was cleared in this mutation.
+func (m *QuestionMutation) QuizIDCleared() bool {
+	_, ok := m.clearedFields[question.FieldQuizID]
+	return ok
+}
+
+// ResetQuizID resets all changes to the "quiz_id" field.
+func (m *QuestionMutation) ResetQuizID() {
+	m.quiz = nil
+	delete(m.clearedFields, question.FieldQuizID)
 }
 
 // ClearQuiz clears the "quiz" edge to the Quiz entity.
 func (m *QuestionMutation) ClearQuiz() {
 	m.clearedquiz = true
+	m.clearedFields[question.FieldQuizID] = struct{}{}
 }
 
 // QuizCleared reports if the "quiz" edge to the Quiz entity was cleared.
 func (m *QuestionMutation) QuizCleared() bool {
-	return m.clearedquiz
-}
-
-// QuizID returns the "quiz" edge ID in the mutation.
-func (m *QuestionMutation) QuizID() (id uuid.UUID, exists bool) {
-	if m.quiz != nil {
-		return *m.quiz, true
-	}
-	return
+	return m.QuizIDCleared() || m.clearedquiz
 }
 
 // QuizIDs returns the "quiz" edge IDs in the mutation.
@@ -2383,12 +2483,15 @@ func (m *QuestionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *QuestionMutation) Fields() []string {
-	fields := make([]string, 0, 2)
+	fields := make([]string, 0, 3)
 	if m.text != nil {
 		fields = append(fields, question.FieldText)
 	}
 	if m.order_index != nil {
 		fields = append(fields, question.FieldOrderIndex)
+	}
+	if m.quiz != nil {
+		fields = append(fields, question.FieldQuizID)
 	}
 	return fields
 }
@@ -2402,6 +2505,8 @@ func (m *QuestionMutation) Field(name string) (ent.Value, bool) {
 		return m.Text()
 	case question.FieldOrderIndex:
 		return m.OrderIndex()
+	case question.FieldQuizID:
+		return m.QuizID()
 	}
 	return nil, false
 }
@@ -2415,6 +2520,8 @@ func (m *QuestionMutation) OldField(ctx context.Context, name string) (ent.Value
 		return m.OldText(ctx)
 	case question.FieldOrderIndex:
 		return m.OldOrderIndex(ctx)
+	case question.FieldQuizID:
+		return m.OldQuizID(ctx)
 	}
 	return nil, fmt.Errorf("unknown Question field %s", name)
 }
@@ -2437,6 +2544,13 @@ func (m *QuestionMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetOrderIndex(v)
+		return nil
+	case question.FieldQuizID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetQuizID(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Question field %s", name)
@@ -2482,7 +2596,11 @@ func (m *QuestionMutation) AddField(name string, value ent.Value) error {
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *QuestionMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(question.FieldQuizID) {
+		fields = append(fields, question.FieldQuizID)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -2495,6 +2613,11 @@ func (m *QuestionMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *QuestionMutation) ClearField(name string) error {
+	switch name {
+	case question.FieldQuizID:
+		m.ClearQuizID()
+		return nil
+	}
 	return fmt.Errorf("unknown Question nullable field %s", name)
 }
 
@@ -2507,6 +2630,9 @@ func (m *QuestionMutation) ResetField(name string) error {
 		return nil
 	case question.FieldOrderIndex:
 		m.ResetOrderIndex()
+		return nil
+	case question.FieldQuizID:
+		m.ResetQuizID()
 		return nil
 	}
 	return fmt.Errorf("unknown Question field %s", name)

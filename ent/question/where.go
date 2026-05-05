@@ -64,6 +64,11 @@ func OrderIndex(v int) predicate.Question {
 	return predicate.Question(sql.FieldEQ(FieldOrderIndex, v))
 }
 
+// QuizID applies equality check predicate on the "quiz_id" field. It's identical to QuizIDEQ.
+func QuizID(v uuid.UUID) predicate.Question {
+	return predicate.Question(sql.FieldEQ(FieldQuizID, v))
+}
+
 // TextEQ applies the EQ predicate on the "text" field.
 func TextEQ(v string) predicate.Question {
 	return predicate.Question(sql.FieldEQ(FieldText, v))
@@ -167,6 +172,36 @@ func OrderIndexLT(v int) predicate.Question {
 // OrderIndexLTE applies the LTE predicate on the "order_index" field.
 func OrderIndexLTE(v int) predicate.Question {
 	return predicate.Question(sql.FieldLTE(FieldOrderIndex, v))
+}
+
+// QuizIDEQ applies the EQ predicate on the "quiz_id" field.
+func QuizIDEQ(v uuid.UUID) predicate.Question {
+	return predicate.Question(sql.FieldEQ(FieldQuizID, v))
+}
+
+// QuizIDNEQ applies the NEQ predicate on the "quiz_id" field.
+func QuizIDNEQ(v uuid.UUID) predicate.Question {
+	return predicate.Question(sql.FieldNEQ(FieldQuizID, v))
+}
+
+// QuizIDIn applies the In predicate on the "quiz_id" field.
+func QuizIDIn(vs ...uuid.UUID) predicate.Question {
+	return predicate.Question(sql.FieldIn(FieldQuizID, vs...))
+}
+
+// QuizIDNotIn applies the NotIn predicate on the "quiz_id" field.
+func QuizIDNotIn(vs ...uuid.UUID) predicate.Question {
+	return predicate.Question(sql.FieldNotIn(FieldQuizID, vs...))
+}
+
+// QuizIDIsNil applies the IsNil predicate on the "quiz_id" field.
+func QuizIDIsNil() predicate.Question {
+	return predicate.Question(sql.FieldIsNull(FieldQuizID))
+}
+
+// QuizIDNotNil applies the NotNil predicate on the "quiz_id" field.
+func QuizIDNotNil() predicate.Question {
+	return predicate.Question(sql.FieldNotNull(FieldQuizID))
 }
 
 // HasQuiz applies the HasEdge predicate on the "quiz" edge.

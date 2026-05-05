@@ -22,11 +22,12 @@ type Question struct {
 	Text string `json:"text,omitempty"`
 	// OrderIndex holds the value of the "order_index" field.
 	OrderIndex int `json:"order_index,omitempty"`
+	// QuizID holds the value of the "quiz_id" field.
+	QuizID uuid.UUID `json:"quiz_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the QuestionQuery when eager-loading is set.
-	Edges          QuestionEdges `json:"edges"`
-	quiz_questions *uuid.UUID
-	selectValues   sql.SelectValues
+	Edges        QuestionEdges `json:"edges"`
+	selectValues sql.SelectValues
 }
 
 // QuestionEdges holds the relations/edges for other nodes in the graph.
@@ -80,10 +81,8 @@ func (*Question) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case question.FieldText:
 			values[i] = new(sql.NullString)
-		case question.FieldID:
+		case question.FieldID, question.FieldQuizID:
 			values[i] = new(uuid.UUID)
-		case question.ForeignKeys[0]: // quiz_questions
-			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -117,12 +116,11 @@ func (_m *Question) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.OrderIndex = int(value.Int64)
 			}
-		case question.ForeignKeys[0]:
-			if value, ok := values[i].(*sql.NullScanner); !ok {
-				return fmt.Errorf("unexpected type %T for field quiz_questions", values[i])
-			} else if value.Valid {
-				_m.quiz_questions = new(uuid.UUID)
-				*_m.quiz_questions = *value.S.(*uuid.UUID)
+		case question.FieldQuizID:
+			if value, ok := values[i].(*uuid.UUID); !ok {
+				return fmt.Errorf("unexpected type %T for field quiz_id", values[i])
+			} else if value != nil {
+				_m.QuizID = *value
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -180,6 +178,9 @@ func (_m *Question) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("order_index=")
 	builder.WriteString(fmt.Sprintf("%v", _m.OrderIndex))
+	builder.WriteString(", ")
+	builder.WriteString("quiz_id=")
+	builder.WriteString(fmt.Sprintf("%v", _m.QuizID))
 	builder.WriteByte(')')
 	return builder.String()
 }

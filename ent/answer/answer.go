@@ -19,6 +19,8 @@ const (
 	FieldIsCorrect = "is_correct"
 	// FieldOrderIndex holds the string denoting the order_index field in the database.
 	FieldOrderIndex = "order_index"
+	// FieldQuestionID holds the string denoting the question_id field in the database.
+	FieldQuestionID = "question_id"
 	// EdgeQuestion holds the string denoting the question edge name in mutations.
 	EdgeQuestion = "question"
 	// EdgeAttemptAnswers holds the string denoting the attempt_answers edge name in mutations.
@@ -31,7 +33,7 @@ const (
 	// It exists in this package in order to avoid circular dependency with the "question" package.
 	QuestionInverseTable = "questions"
 	// QuestionColumn is the table column denoting the question relation/edge.
-	QuestionColumn = "question_answers"
+	QuestionColumn = "question_id"
 	// AttemptAnswersTable is the table that holds the attempt_answers relation/edge.
 	AttemptAnswersTable = "attempt_answers"
 	// AttemptAnswersInverseTable is the table name for the AttemptAnswer entity.
@@ -47,23 +49,13 @@ var Columns = []string{
 	FieldText,
 	FieldIsCorrect,
 	FieldOrderIndex,
-}
-
-// ForeignKeys holds the SQL foreign-keys that are owned by the "answers"
-// table and are not defined as standalone fields in the schema.
-var ForeignKeys = []string{
-	"question_answers",
+	FieldQuestionID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
-			return true
-		}
-	}
-	for i := range ForeignKeys {
-		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -100,6 +92,11 @@ func ByIsCorrect(opts ...sql.OrderTermOption) OrderOption {
 // ByOrderIndex orders the results by the order_index field.
 func ByOrderIndex(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldOrderIndex, opts...).ToFunc()
+}
+
+// ByQuestionID orders the results by the question_id field.
+func ByQuestionID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldQuestionID, opts...).ToFunc()
 }
 
 // ByQuestionField orders the results by question field.

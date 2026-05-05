@@ -24,11 +24,12 @@ type Answer struct {
 	IsCorrect bool `json:"is_correct,omitempty"`
 	// OrderIndex holds the value of the "order_index" field.
 	OrderIndex int `json:"order_index,omitempty"`
+	// QuestionID holds the value of the "question_id" field.
+	QuestionID uuid.UUID `json:"question_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the AnswerQuery when eager-loading is set.
-	Edges            AnswerEdges `json:"edges"`
-	question_answers *uuid.UUID
-	selectValues     sql.SelectValues
+	Edges        AnswerEdges `json:"edges"`
+	selectValues sql.SelectValues
 }
 
 // AnswerEdges holds the relations/edges for other nodes in the graph.
@@ -73,10 +74,8 @@ func (*Answer) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case answer.FieldText:
 			values[i] = new(sql.NullString)
-		case answer.FieldID:
+		case answer.FieldID, answer.FieldQuestionID:
 			values[i] = new(uuid.UUID)
-		case answer.ForeignKeys[0]: // question_answers
-			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -116,12 +115,11 @@ func (_m *Answer) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.OrderIndex = int(value.Int64)
 			}
-		case answer.ForeignKeys[0]:
-			if value, ok := values[i].(*sql.NullScanner); !ok {
-				return fmt.Errorf("unexpected type %T for field question_answers", values[i])
-			} else if value.Valid {
-				_m.question_answers = new(uuid.UUID)
-				*_m.question_answers = *value.S.(*uuid.UUID)
+		case answer.FieldQuestionID:
+			if value, ok := values[i].(*uuid.UUID); !ok {
+				return fmt.Errorf("unexpected type %T for field question_id", values[i])
+			} else if value != nil {
+				_m.QuestionID = *value
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -177,6 +175,9 @@ func (_m *Answer) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("order_index=")
 	builder.WriteString(fmt.Sprintf("%v", _m.OrderIndex))
+	builder.WriteString(", ")
+	builder.WriteString("question_id=")
+	builder.WriteString(fmt.Sprintf("%v", _m.QuestionID))
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -66,17 +66,23 @@ func (_u *QuestionUpdate) AddOrderIndex(v int) *QuestionUpdate {
 	return _u
 }
 
-// SetQuizID sets the "quiz" edge to the Quiz entity by ID.
-func (_u *QuestionUpdate) SetQuizID(id uuid.UUID) *QuestionUpdate {
-	_u.mutation.SetQuizID(id)
+// SetQuizID sets the "quiz_id" field.
+func (_u *QuestionUpdate) SetQuizID(v uuid.UUID) *QuestionUpdate {
+	_u.mutation.SetQuizID(v)
 	return _u
 }
 
-// SetNillableQuizID sets the "quiz" edge to the Quiz entity by ID if the given value is not nil.
-func (_u *QuestionUpdate) SetNillableQuizID(id *uuid.UUID) *QuestionUpdate {
-	if id != nil {
-		_u = _u.SetQuizID(*id)
+// SetNillableQuizID sets the "quiz_id" field if the given value is not nil.
+func (_u *QuestionUpdate) SetNillableQuizID(v *uuid.UUID) *QuestionUpdate {
+	if v != nil {
+		_u.SetQuizID(*v)
 	}
+	return _u
+}
+
+// ClearQuizID clears the value of the "quiz_id" field.
+func (_u *QuestionUpdate) ClearQuizID() *QuestionUpdate {
+	_u.mutation.ClearQuizID()
 	return _u
 }
 
@@ -387,17 +393,23 @@ func (_u *QuestionUpdateOne) AddOrderIndex(v int) *QuestionUpdateOne {
 	return _u
 }
 
-// SetQuizID sets the "quiz" edge to the Quiz entity by ID.
-func (_u *QuestionUpdateOne) SetQuizID(id uuid.UUID) *QuestionUpdateOne {
-	_u.mutation.SetQuizID(id)
+// SetQuizID sets the "quiz_id" field.
+func (_u *QuestionUpdateOne) SetQuizID(v uuid.UUID) *QuestionUpdateOne {
+	_u.mutation.SetQuizID(v)
 	return _u
 }
 
-// SetNillableQuizID sets the "quiz" edge to the Quiz entity by ID if the given value is not nil.
-func (_u *QuestionUpdateOne) SetNillableQuizID(id *uuid.UUID) *QuestionUpdateOne {
-	if id != nil {
-		_u = _u.SetQuizID(*id)
+// SetNillableQuizID sets the "quiz_id" field if the given value is not nil.
+func (_u *QuestionUpdateOne) SetNillableQuizID(v *uuid.UUID) *QuestionUpdateOne {
+	if v != nil {
+		_u.SetQuizID(*v)
 	}
+	return _u
+}
+
+// ClearQuizID clears the value of the "quiz_id" field.
+func (_u *QuestionUpdateOne) ClearQuizID() *QuestionUpdateOne {
+	_u.mutation.ClearQuizID()
 	return _u
 }
 

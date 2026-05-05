@@ -30,7 +30,6 @@ type QuestionQuery struct {
 	withQuiz           *QuizQuery
 	withAnswers        *AnswerQuery
 	withAttemptAnswers *AttemptAnswerQuery
-	withFKs            bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -444,7 +443,6 @@ func (_q *QuestionQuery) prepareQuery(ctx context.Context) error {
 func (_q *QuestionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Question, error) {
 	var (
 		nodes       = []*Question{}
-		withFKs     = _q.withFKs
 		_spec       = _q.querySpec()
 		loadedTypes = [3]bool{
 			_q.withQuiz != nil,
@@ -452,12 +450,6 @@ func (_q *QuestionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Que
 			_q.withAttemptAnswers != nil,
 		}
 	)
-	if _q.withQuiz != nil {
-		withFKs = true
-	}
-	if withFKs {
-		_spec.Node.Columns = append(_spec.Node.Columns, question.ForeignKeys...)
-	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Question).scanValues(nil, columns)
 	}
@@ -503,10 +495,7 @@ func (_q *QuestionQuery) loadQuiz(ctx context.Context, query *QuizQuery, nodes [
 	ids := make([]uuid.UUID, 0, len(nodes))
 	nodeids := make(map[uuid.UUID][]*Question)
 	for i := range nodes {
-		if nodes[i].quiz_questions == nil {
-			continue
-		}
-		fk := *nodes[i].quiz_questions
+		fk := nodes[i].QuizID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -523,7 +512,7 @@ func (_q *QuestionQuery) loadQuiz(ctx context.Context, query *QuizQuery, nodes [
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "quiz_questions" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "quiz_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -541,7 +530,9 @@ func (_q *QuestionQuery) loadAnswers(ctx context.Context, query *AnswerQuery, no
 			init(nodes[i])
 		}
 	}
-	query.withFKs = true
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(answer.FieldQuestionID)
+	}
 	query.Where(predicate.Answer(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(question.AnswersColumn), fks...))
 	}))
@@ -550,13 +541,10 @@ func (_q *QuestionQuery) loadAnswers(ctx context.Context, query *AnswerQuery, no
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.question_answers
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "question_answers" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
+		fk := n.QuestionID
+		node, ok := nodeids[fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "question_answers" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "question_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}
@@ -618,6 +606,9 @@ func (_q *QuestionQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != question.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if _q.withQuiz != nil {
+			_spec.Node.AddColumnOnce(question.FieldQuizID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

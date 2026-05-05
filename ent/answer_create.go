@@ -56,6 +56,20 @@ func (_c *AnswerCreate) SetNillableOrderIndex(v *int) *AnswerCreate {
 	return _c
 }
 
+// SetQuestionID sets the "question_id" field.
+func (_c *AnswerCreate) SetQuestionID(v uuid.UUID) *AnswerCreate {
+	_c.mutation.SetQuestionID(v)
+	return _c
+}
+
+// SetNillableQuestionID sets the "question_id" field if the given value is not nil.
+func (_c *AnswerCreate) SetNillableQuestionID(v *uuid.UUID) *AnswerCreate {
+	if v != nil {
+		_c.SetQuestionID(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *AnswerCreate) SetID(v uuid.UUID) *AnswerCreate {
 	_c.mutation.SetID(v)
@@ -66,20 +80,6 @@ func (_c *AnswerCreate) SetID(v uuid.UUID) *AnswerCreate {
 func (_c *AnswerCreate) SetNillableID(v *uuid.UUID) *AnswerCreate {
 	if v != nil {
 		_c.SetID(*v)
-	}
-	return _c
-}
-
-// SetQuestionID sets the "question" edge to the Question entity by ID.
-func (_c *AnswerCreate) SetQuestionID(id uuid.UUID) *AnswerCreate {
-	_c.mutation.SetQuestionID(id)
-	return _c
-}
-
-// SetNillableQuestionID sets the "question" edge to the Question entity by ID if the given value is not nil.
-func (_c *AnswerCreate) SetNillableQuestionID(id *uuid.UUID) *AnswerCreate {
-	if id != nil {
-		_c = _c.SetQuestionID(*id)
 	}
 	return _c
 }
@@ -225,7 +225,7 @@ func (_c *AnswerCreate) createSpec() (*Answer, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.question_answers = &nodes[0]
+		_node.QuestionID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.AttemptAnswersIDs(); len(nodes) > 0 {
