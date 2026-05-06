@@ -312,13 +312,33 @@ func AdminDeleteQuiz(ctx context.Context, id string) (*MessageResponse, error) {
 		return nil, errors.New("неверный id")
 	}
 
+	questions, _ := client.Question.Query().
+		Where(entquestion.HasQuizWith(entquiz.ID(uid))).
+		WithAnswers().
+		All(ctx)
+
+	for _, q := range questions {
+		for _, a := range q.Edges.Answers {
+			client.Answer.DeleteOneID(a.ID).Exec(ctx)
+		}
+		client.Question.DeleteOneID(q.ID).Exec(ctx)
+	}
+
+	attempts, _ := client.Attempt.Query().
+		Where(func(s *sql.Selector) {
+			s.Where(sql.EQ("quiz_id", uid))
+		}).
+		All(ctx)
+	for _, a := range attempts {
+		client.Attempt.DeleteOneID(a.ID).Exec(ctx)
+	}
+
 	err = client.Quiz.DeleteOneID(uid).Exec(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return &MessageResponse{Message: "квиз удалён"}, nil
 }
-
 // ===== ADMIN: опубликовать/скрыть =====
 
 //encore:api auth method=PATCH path=/admin/quizzes/:id/publish
