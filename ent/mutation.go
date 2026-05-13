@@ -2055,6 +2055,7 @@ type QuestionMutation struct {
 	text                   *string
 	order_index            *int
 	addorder_index         *int
+	question_type          *string
 	clearedFields          map[string]struct{}
 	quiz                   *uuid.UUID
 	clearedquiz            bool
@@ -2314,6 +2315,42 @@ func (m *QuestionMutation) ResetQuizID() {
 	delete(m.clearedFields, question.FieldQuizID)
 }
 
+// SetQuestionType sets the "question_type" field.
+func (m *QuestionMutation) SetQuestionType(s string) {
+	m.question_type = &s
+}
+
+// QuestionType returns the value of the "question_type" field in the mutation.
+func (m *QuestionMutation) QuestionType() (r string, exists bool) {
+	v := m.question_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldQuestionType returns the old "question_type" field's value of the Question entity.
+// If the Question object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuestionMutation) OldQuestionType(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldQuestionType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldQuestionType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldQuestionType: %w", err)
+	}
+	return oldValue.QuestionType, nil
+}
+
+// ResetQuestionType resets all changes to the "question_type" field.
+func (m *QuestionMutation) ResetQuestionType() {
+	m.question_type = nil
+}
+
 // ClearQuiz clears the "quiz" edge to the Quiz entity.
 func (m *QuestionMutation) ClearQuiz() {
 	m.clearedquiz = true
@@ -2483,7 +2520,7 @@ func (m *QuestionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *QuestionMutation) Fields() []string {
-	fields := make([]string, 0, 3)
+	fields := make([]string, 0, 4)
 	if m.text != nil {
 		fields = append(fields, question.FieldText)
 	}
@@ -2492,6 +2529,9 @@ func (m *QuestionMutation) Fields() []string {
 	}
 	if m.quiz != nil {
 		fields = append(fields, question.FieldQuizID)
+	}
+	if m.question_type != nil {
+		fields = append(fields, question.FieldQuestionType)
 	}
 	return fields
 }
@@ -2507,6 +2547,8 @@ func (m *QuestionMutation) Field(name string) (ent.Value, bool) {
 		return m.OrderIndex()
 	case question.FieldQuizID:
 		return m.QuizID()
+	case question.FieldQuestionType:
+		return m.QuestionType()
 	}
 	return nil, false
 }
@@ -2522,6 +2564,8 @@ func (m *QuestionMutation) OldField(ctx context.Context, name string) (ent.Value
 		return m.OldOrderIndex(ctx)
 	case question.FieldQuizID:
 		return m.OldQuizID(ctx)
+	case question.FieldQuestionType:
+		return m.OldQuestionType(ctx)
 	}
 	return nil, fmt.Errorf("unknown Question field %s", name)
 }
@@ -2551,6 +2595,13 @@ func (m *QuestionMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetQuizID(v)
+		return nil
+	case question.FieldQuestionType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetQuestionType(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Question field %s", name)
@@ -2633,6 +2684,9 @@ func (m *QuestionMutation) ResetField(name string) error {
 		return nil
 	case question.FieldQuizID:
 		m.ResetQuizID()
+		return nil
+	case question.FieldQuestionType:
+		m.ResetQuestionType()
 		return nil
 	}
 	return fmt.Errorf("unknown Question field %s", name)

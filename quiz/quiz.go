@@ -3,6 +3,7 @@ package quiz
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"encore.app/ent"
 	entanswer "encore.app/ent/answer"
@@ -36,10 +37,11 @@ type Answer struct {
 }
 
 type Question struct {
-	ID         string   `json:"id"`
-	Text       string   `json:"text"`
-	OrderIndex int      `json:"order_index"`
-	Answers    []Answer `json:"answers"`
+	ID           string   `json:"id"`
+	Text         string   `json:"text"`
+	OrderIndex   int      `json:"order_index"`
+	QuestionType string   `json:"question_type"`
+	Answers      []Answer `json:"answers"`
 }
 
 type Quiz struct {
@@ -61,6 +63,10 @@ type QuizListItem struct {
 	PassThreshold int    `json:"pass_threshold"`
 	OneAttempt    bool   `json:"one_attempt"`
 	ShowAnswers   bool   `json:"show_answers"`
+	Status        string `json:"status"`
+	Score         int    `json:"score"`
+	Percent       int    `json:"percent"`
+	Passed        bool   `json:"passed"`
 }
 
 type CreateQuizRequest struct {
@@ -73,9 +79,10 @@ type CreateQuizRequest struct {
 }
 
 type CreateQuestion struct {
-	Text       string         `json:"text"`
-	OrderIndex int            `json:"order_index"`
-	Answers    []CreateAnswer `json:"answers"`
+	Text         string         `json:"text"`
+	OrderIndex   int            `json:"order_index"`
+	QuestionType string         `json:"question_type"`
+	Answers      []CreateAnswer `json:"answers"`
 }
 
 type CreateAnswer struct {
@@ -105,8 +112,9 @@ type SubmitRequest struct {
 }
 
 type SubmitAnswer struct {
-	QuestionID string `json:"question_id"`
-	AnswerID   string `json:"answer_id"`
+	QuestionID   string `json:"question_id"`
+	AnswerID     string `json:"answer_id"`
+	TextAnswer   string `json:"text_answer,omitempty"`
 }
 
 type SubmitResult struct {
@@ -133,14 +141,11 @@ func AdminListQuizzes(ctx context.Context) (*QuizListResponse, error) {
 	if ud.Role != "admin" {
 		return nil, errors.New("доступ запрещён")
 	}
-
 	client := entClient
-
 	quizzes, err := client.Quiz.Query().WithQuestions().All(ctx)
 	if err != nil {
 		return nil, err
 	}
-
 	var result []QuizListItem
 	for _, q := range quizzes {
 		result = append(result, QuizListItem{
@@ -173,9 +178,7 @@ func AdminCreateQuiz(ctx context.Context, req *CreateQuizRequest) (*QuizResponse
 	if len(req.Questions) == 0 {
 		return nil, errors.New("минимум 1 вопрос")
 	}
-
 	client := entClient
-
 	q, err := client.Quiz.Create().
 		SetTitle(req.Title).
 		SetIsPublished(req.IsPublished).
@@ -186,14 +189,15 @@ func AdminCreateQuiz(ctx context.Context, req *CreateQuizRequest) (*QuizResponse
 	if err != nil {
 		return nil, err
 	}
-
 	for _, qReq := range req.Questions {
-		if len(qReq.Answers) < 2 {
-			return nil, errors.New("минимум 2 варианта ответа")
+		qType := qReq.QuestionType
+		if qType == "" {
+			qType = "choice"
 		}
 		question, err := client.Question.Create().
 			SetText(qReq.Text).
 			SetOrderIndex(qReq.OrderIndex).
+			SetQuestionType(qType).
 			SetQuiz(q).
 			Save(ctx)
 		if err != nil {
@@ -211,7 +215,6 @@ func AdminCreateQuiz(ctx context.Context, req *CreateQuizRequest) (*QuizResponse
 			}
 		}
 	}
-
 	return getQuizByID(ctx, q.ID.String(), true)
 }
 
@@ -237,14 +240,11 @@ func AdminUpdateQuiz(ctx context.Context, id string, req *CreateQuizRequest) (*Q
 	if req.Title == "" {
 		return nil, errors.New("название обязательно")
 	}
-
 	client := entClient
-
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, errors.New("неверный id")
 	}
-
 	_, err = client.Quiz.UpdateOneID(uid).
 		SetTitle(req.Title).
 		SetIsPublished(req.IsPublished).
@@ -255,26 +255,26 @@ func AdminUpdateQuiz(ctx context.Context, id string, req *CreateQuizRequest) (*Q
 	if err != nil {
 		return nil, err
 	}
-
-	// Удаляем старые вопросы
 	questions, _ := client.Question.Query().
 		Where(entquestion.HasQuizWith(entquiz.ID(uid))).
 		WithAnswers().
 		All(ctx)
-
 	for _, q := range questions {
 		for _, a := range q.Edges.Answers {
 			client.Answer.DeleteOneID(a.ID).Exec(ctx)
 		}
 		client.Question.DeleteOneID(q.ID).Exec(ctx)
 	}
-
-	// Создаём новые вопросы
 	quizEnt, _ := client.Quiz.Get(ctx, uid)
 	for _, qReq := range req.Questions {
+		qType := qReq.QuestionType
+		if qType == "" {
+			qType = "choice"
+		}
 		question, err := client.Question.Create().
 			SetText(qReq.Text).
 			SetOrderIndex(qReq.OrderIndex).
+			SetQuestionType(qType).
 			SetQuiz(quizEnt).
 			Save(ctx)
 		if err != nil {
@@ -292,7 +292,6 @@ func AdminUpdateQuiz(ctx context.Context, id string, req *CreateQuizRequest) (*Q
 			}
 		}
 	}
-
 	return getQuizByID(ctx, id, true)
 }
 
@@ -304,26 +303,21 @@ func AdminDeleteQuiz(ctx context.Context, id string) (*MessageResponse, error) {
 	if ud.Role != "admin" {
 		return nil, errors.New("доступ запрещён")
 	}
-
 	client := entClient
-
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, errors.New("неверный id")
 	}
-
 	questions, _ := client.Question.Query().
 		Where(entquestion.HasQuizWith(entquiz.ID(uid))).
 		WithAnswers().
 		All(ctx)
-
 	for _, q := range questions {
 		for _, a := range q.Edges.Answers {
 			client.Answer.DeleteOneID(a.ID).Exec(ctx)
 		}
 		client.Question.DeleteOneID(q.ID).Exec(ctx)
 	}
-
 	attempts, _ := client.Attempt.Query().
 		Where(func(s *sql.Selector) {
 			s.Where(sql.EQ("quiz_id", uid))
@@ -332,13 +326,13 @@ func AdminDeleteQuiz(ctx context.Context, id string) (*MessageResponse, error) {
 	for _, a := range attempts {
 		client.Attempt.DeleteOneID(a.ID).Exec(ctx)
 	}
-
 	err = client.Quiz.DeleteOneID(uid).Exec(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return &MessageResponse{Message: "квиз удалён"}, nil
 }
+
 // ===== ADMIN: опубликовать/скрыть =====
 
 //encore:api auth method=PATCH path=/admin/quizzes/:id/publish
@@ -347,14 +341,11 @@ func AdminPublishQuiz(ctx context.Context, id string, req *PublishRequest) (*Mes
 	if ud.Role != "admin" {
 		return nil, errors.New("доступ запрещён")
 	}
-
 	client := entClient
-
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, errors.New("неверный id")
 	}
-
 	_, err = client.Quiz.UpdateOneID(uid).
 		SetIsPublished(req.IsPublished).
 		Save(ctx)
@@ -364,12 +355,12 @@ func AdminPublishQuiz(ctx context.Context, id string, req *PublishRequest) (*Mes
 	return &MessageResponse{Message: "статус обновлён"}, nil
 }
 
-// ===== USER: список опубликованных квизов =====
+// ===== USER + ADMIN: список квизов со статусами =====
 
 //encore:api auth method=GET path=/quizzes
 func ListQuizzes(ctx context.Context) (*QuizListResponse, error) {
+	ud := auth.Data().(*UserData)
 	client := entClient
-
 	quizzes, err := client.Quiz.Query().
 		Where(entquiz.IsPublished(true)).
 		WithQuestions().
@@ -377,10 +368,10 @@ func ListQuizzes(ctx context.Context) (*QuizListResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	userUID, _ := uuid.Parse(ud.UserID)
 	var result []QuizListItem
 	for _, q := range quizzes {
-		result = append(result, QuizListItem{
+		item := QuizListItem{
 			ID:            q.ID.String(),
 			Title:         q.Title,
 			IsPublished:   q.IsPublished,
@@ -388,7 +379,27 @@ func ListQuizzes(ctx context.Context) (*QuizListResponse, error) {
 			OneAttempt:    q.OneAttempt,
 			ShowAnswers:   q.ShowAnswers,
 			QuestionCount: len(q.Edges.Questions),
-		})
+			Status:        "not_started",
+		}
+		attempt, err := client.Attempt.Query().
+			Where(func(s *sql.Selector) {
+				s.Where(sql.And(
+					sql.EQ("quiz_id", q.ID),
+					sql.EQ("user_id", userUID),
+				))
+			}).
+			First(ctx)
+		if err == nil && attempt != nil {
+			percent := 0
+			if attempt.Total > 0 {
+				percent = (attempt.Score * 100) / attempt.Total
+			}
+			item.Score = attempt.Score
+			item.Percent = percent
+			item.Passed = percent >= q.PassThreshold
+			item.Status = "completed"
+		}
+		result = append(result, item)
 	}
 	if result == nil {
 		result = []QuizListItem{}
@@ -396,33 +407,68 @@ func ListQuizzes(ctx context.Context) (*QuizListResponse, error) {
 	return &QuizListResponse{Quizzes: result}, nil
 }
 
-// ===== USER: получить квиз для прохождения =====
+// ===== USER + ADMIN: получить квиз =====
 
 //encore:api auth method=GET path=/quizzes/:id
 func GetQuiz(ctx context.Context, id string) (*QuizResponse, error) {
 	return getQuizByID(ctx, id, false)
 }
 
-// ===== USER: отправить ответы =====
+// ===== USER + ADMIN: получить результат прошлой попытки =====
 
-//encore:api auth method=POST path=/quizzes/:id/submit
-func SubmitQuiz(ctx context.Context, id string, req *SubmitRequest) (*SubmitResult, error) {
+//encore:api auth method=GET path=/quizzes/:id/result
+func GetQuizResult(ctx context.Context, id string) (*SubmitResult, error) {
 	ud := auth.Data().(*UserData)
-
 	client := entClient
-
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, errors.New("неверный id")
 	}
-
+	userUID, _ := uuid.Parse(ud.UserID)
 	q, err := client.Quiz.Get(ctx, uid)
 	if err != nil {
 		return nil, errors.New("квиз не найден")
 	}
+	attempt, err := client.Attempt.Query().
+		Where(func(s *sql.Selector) {
+			s.Where(sql.And(
+				sql.EQ("quiz_id", uid),
+				sql.EQ("user_id", userUID),
+			))
+		}).
+		First(ctx)
+	if err != nil {
+		return nil, errors.New("попытка не найдена")
+	}
+	percent := 0
+	if attempt.Total > 0 {
+		percent = (attempt.Score * 100) / attempt.Total
+	}
+	return &SubmitResult{
+		Score:       attempt.Score,
+		Total:       attempt.Total,
+		Percent:     percent,
+		Passed:      percent >= q.PassThreshold,
+		ShowAnswers: q.ShowAnswers,
+	}, nil
+}
 
+// ===== USER + ADMIN: отправить ответы =====
+
+//encore:api auth method=POST path=/quizzes/:id/submit
+func SubmitQuiz(ctx context.Context, id string, req *SubmitRequest) (*SubmitResult, error) {
+	ud := auth.Data().(*UserData)
+	client := entClient
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, errors.New("неверный id")
+	}
+	q, err := client.Quiz.Get(ctx, uid)
+	if err != nil {
+		return nil, errors.New("квиз не найден")
+	}
+	userUID, _ := uuid.Parse(ud.UserID)
 	if q.OneAttempt {
-		userUID, _ := uuid.Parse(ud.UserID)
 		count, _ := client.Attempt.Query().
 			Where(func(s *sql.Selector) {
 				s.Where(sql.And(
@@ -434,12 +480,41 @@ func SubmitQuiz(ctx context.Context, id string, req *SubmitRequest) (*SubmitResu
 			return nil, errors.New("вы уже проходили этот квиз")
 		}
 	}
-
 	score := 0
 	total := len(req.Answers)
 	var details []AnswerDetail
-
 	for _, a := range req.Answers {
+		if a.TextAnswer != "" {
+			questionUID, _ := uuid.Parse(a.QuestionID)
+			correctAnswer, _ := client.Answer.Query().
+				Where(entanswer.IsCorrect(true), entanswer.HasQuestionWith(entquestion.ID(questionUID))).
+				First(ctx)
+			isCorrect := false
+			correctText := ""
+			if correctAnswer != nil {
+				correctText = correctAnswer.Text
+				if strings.EqualFold(strings.TrimSpace(a.TextAnswer), strings.TrimSpace(correctAnswer.Text)) {
+					isCorrect = true
+					score++
+				}
+			}
+			if q.ShowAnswers {
+				questionEnt, _ := client.Question.Get(ctx, questionUID)
+				detail := AnswerDetail{
+					IsCorrect:     isCorrect,
+					YourAnswer:    a.TextAnswer,
+					CorrectAnswer: correctText,
+				}
+				if questionEnt != nil {
+					detail.QuestionText = questionEnt.Text
+				}
+				details = append(details, detail)
+			}
+			continue
+		}
+		if a.AnswerID == "" {
+			continue
+		}
 		answerUID, err := uuid.Parse(a.AnswerID)
 		if err != nil {
 			continue
@@ -457,7 +532,6 @@ func SubmitQuiz(ctx context.Context, id string, req *SubmitRequest) (*SubmitResu
 			correctAnswer, _ := client.Answer.Query().
 				Where(entanswer.IsCorrect(true), entanswer.HasQuestionWith(entquestion.ID(questionUID))).
 				First(ctx)
-
 			detail := AnswerDetail{
 				IsCorrect:  answerEnt.IsCorrect,
 				YourAnswer: answerEnt.Text,
@@ -471,8 +545,6 @@ func SubmitQuiz(ctx context.Context, id string, req *SubmitRequest) (*SubmitResu
 			details = append(details, detail)
 		}
 	}
-
-	userUID, _ := uuid.Parse(ud.UserID)
 	attempt, err := client.Attempt.Create().
 		SetScore(score).
 		SetTotal(total).
@@ -482,8 +554,10 @@ func SubmitQuiz(ctx context.Context, id string, req *SubmitRequest) (*SubmitResu
 	if err != nil {
 		return nil, err
 	}
-
 	for _, a := range req.Answers {
+		if a.AnswerID == "" {
+			continue
+		}
 		questionUID, _ := uuid.Parse(a.QuestionID)
 		answerUID, _ := uuid.Parse(a.AnswerID)
 		client.AttemptAnswer.Create().
@@ -492,12 +566,10 @@ func SubmitQuiz(ctx context.Context, id string, req *SubmitRequest) (*SubmitResu
 			SetAnswerID(answerUID).
 			Save(ctx)
 	}
-
 	percent := 0
 	if total > 0 {
 		percent = (score * 100) / total
 	}
-
 	return &SubmitResult{
 		Score:       score,
 		Total:       total,
@@ -512,12 +584,10 @@ func SubmitQuiz(ctx context.Context, id string, req *SubmitRequest) (*SubmitResu
 
 func getQuizByID(ctx context.Context, id string, withCorrect bool) (*QuizResponse, error) {
 	client := entClient
-
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, errors.New("неверный id")
 	}
-
 	q, err := client.Quiz.Query().
 		Where(entquiz.ID(uid)).
 		WithQuestions(func(qq *ent.QuestionQuery) {
@@ -527,7 +597,6 @@ func getQuizByID(ctx context.Context, id string, withCorrect bool) (*QuizRespons
 	if err != nil {
 		return nil, errors.New("квиз не найден")
 	}
-
 	var questions []Question
 	for _, question := range q.Edges.Questions {
 		var answers []Answer
@@ -543,13 +612,13 @@ func getQuizByID(ctx context.Context, id string, withCorrect bool) (*QuizRespons
 			answers = append(answers, answer)
 		}
 		questions = append(questions, Question{
-			ID:         question.ID.String(),
-			Text:       question.Text,
-			OrderIndex: question.OrderIndex,
-			Answers:    answers,
+			ID:           question.ID.String(),
+			Text:         question.Text,
+			OrderIndex:   question.OrderIndex,
+			QuestionType: question.QuestionType,
+			Answers:      answers,
 		})
 	}
-
 	return &QuizResponse{Quiz: Quiz{
 		ID:            q.ID.String(),
 		Title:         q.Title,

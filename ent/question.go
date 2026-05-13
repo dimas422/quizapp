@@ -24,6 +24,8 @@ type Question struct {
 	OrderIndex int `json:"order_index,omitempty"`
 	// QuizID holds the value of the "quiz_id" field.
 	QuizID uuid.UUID `json:"quiz_id,omitempty"`
+	// QuestionType holds the value of the "question_type" field.
+	QuestionType string `json:"question_type,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the QuestionQuery when eager-loading is set.
 	Edges        QuestionEdges `json:"edges"`
@@ -79,7 +81,7 @@ func (*Question) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case question.FieldOrderIndex:
 			values[i] = new(sql.NullInt64)
-		case question.FieldText:
+		case question.FieldText, question.FieldQuestionType:
 			values[i] = new(sql.NullString)
 		case question.FieldID, question.FieldQuizID:
 			values[i] = new(uuid.UUID)
@@ -121,6 +123,12 @@ func (_m *Question) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field quiz_id", values[i])
 			} else if value != nil {
 				_m.QuizID = *value
+			}
+		case question.FieldQuestionType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field question_type", values[i])
+			} else if value.Valid {
+				_m.QuestionType = value.String
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -181,6 +189,9 @@ func (_m *Question) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("quiz_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.QuizID))
+	builder.WriteString(", ")
+	builder.WriteString("question_type=")
+	builder.WriteString(_m.QuestionType)
 	builder.WriteByte(')')
 	return builder.String()
 }

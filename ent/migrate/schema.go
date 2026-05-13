@@ -98,6 +98,7 @@ var (
 		{Name: "id", Type: field.TypeUUID, Unique: true},
 		{Name: "text", Type: field.TypeString},
 		{Name: "order_index", Type: field.TypeInt, Default: 0},
+		{Name: "question_type", Type: field.TypeString, Default: "choice"},
 		{Name: "quiz_id", Type: field.TypeUUID, Nullable: true},
 	}
 	// QuestionsTable holds the schema information for the "questions" table.
@@ -108,7 +109,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "questions_quizzes_questions",
-				Columns:    []*schema.Column{QuestionsColumns[3]},
+				Columns:    []*schema.Column{QuestionsColumns[4]},
 				RefColumns: []*schema.Column{QuizzesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},

@@ -47,3 +47,4 @@ CREATE TABLE attempt_answers (
     question_id UUID NOT NULL REFERENCES questions(id),
     answer_id UUID NOT NULL REFERENCES answers(id)
 );
+ALTER TABLE questions ADD COLUMN IF NOT EXISTS question_type TEXT NOT NULL DEFAULT 'choice';

@@ -49,6 +49,10 @@ func init() {
 	questionDescOrderIndex := questionFields[2].Descriptor()
 	// question.DefaultOrderIndex holds the default value on creation for the order_index field.
 	question.DefaultOrderIndex = questionDescOrderIndex.Default.(int)
+	// questionDescQuestionType is the schema descriptor for question_type field.
+	questionDescQuestionType := questionFields[4].Descriptor()
+	// question.DefaultQuestionType holds the default value on creation for the question_type field.
+	question.DefaultQuestionType = questionDescQuestionType.Default.(string)
 	// questionDescID is the schema descriptor for id field.
 	questionDescID := questionFields[0].Descriptor()
 	// question.DefaultID holds the default value on creation for the id field.

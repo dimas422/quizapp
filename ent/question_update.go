@@ -86,6 +86,20 @@ func (_u *QuestionUpdate) ClearQuizID() *QuestionUpdate {
 	return _u
 }
 
+// SetQuestionType sets the "question_type" field.
+func (_u *QuestionUpdate) SetQuestionType(v string) *QuestionUpdate {
+	_u.mutation.SetQuestionType(v)
+	return _u
+}
+
+// SetNillableQuestionType sets the "question_type" field if the given value is not nil.
+func (_u *QuestionUpdate) SetNillableQuestionType(v *string) *QuestionUpdate {
+	if v != nil {
+		_u.SetQuestionType(*v)
+	}
+	return _u
+}
+
 // SetQuiz sets the "quiz" edge to the Quiz entity.
 func (_u *QuestionUpdate) SetQuiz(v *Quiz) *QuestionUpdate {
 	return _u.SetQuizID(v.ID)
@@ -218,6 +232,9 @@ func (_u *QuestionUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.AddedOrderIndex(); ok {
 		_spec.AddField(question.FieldOrderIndex, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.QuestionType(); ok {
+		_spec.SetField(question.FieldQuestionType, field.TypeString, value)
 	}
 	if _u.mutation.QuizCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -413,6 +430,20 @@ func (_u *QuestionUpdateOne) ClearQuizID() *QuestionUpdateOne {
 	return _u
 }
 
+// SetQuestionType sets the "question_type" field.
+func (_u *QuestionUpdateOne) SetQuestionType(v string) *QuestionUpdateOne {
+	_u.mutation.SetQuestionType(v)
+	return _u
+}
+
+// SetNillableQuestionType sets the "question_type" field if the given value is not nil.
+func (_u *QuestionUpdateOne) SetNillableQuestionType(v *string) *QuestionUpdateOne {
+	if v != nil {
+		_u.SetQuestionType(*v)
+	}
+	return _u
+}
+
 // SetQuiz sets the "quiz" edge to the Quiz entity.
 func (_u *QuestionUpdateOne) SetQuiz(v *Quiz) *QuestionUpdateOne {
 	return _u.SetQuizID(v.ID)
@@ -575,6 +606,9 @@ func (_u *QuestionUpdateOne) sqlSave(ctx context.Context) (_node *Question, err 
 	}
 	if value, ok := _u.mutation.AddedOrderIndex(); ok {
 		_spec.AddField(question.FieldOrderIndex, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.QuestionType(); ok {
+		_spec.SetField(question.FieldQuestionType, field.TypeString, value)
 	}
 	if _u.mutation.QuizCleared() {
 		edge := &sqlgraph.EdgeSpec{

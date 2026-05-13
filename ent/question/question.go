@@ -19,6 +19,8 @@ const (
 	FieldOrderIndex = "order_index"
 	// FieldQuizID holds the string denoting the quiz_id field in the database.
 	FieldQuizID = "quiz_id"
+	// FieldQuestionType holds the string denoting the question_type field in the database.
+	FieldQuestionType = "question_type"
 	// EdgeQuiz holds the string denoting the quiz edge name in mutations.
 	EdgeQuiz = "quiz"
 	// EdgeAnswers holds the string denoting the answers edge name in mutations.
@@ -56,6 +58,7 @@ var Columns = []string{
 	FieldText,
 	FieldOrderIndex,
 	FieldQuizID,
+	FieldQuestionType,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -71,6 +74,8 @@ func ValidColumn(column string) bool {
 var (
 	// DefaultOrderIndex holds the default value on creation for the "order_index" field.
 	DefaultOrderIndex int
+	// DefaultQuestionType holds the default value on creation for the "question_type" field.
+	DefaultQuestionType string
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )
@@ -96,6 +101,11 @@ func ByOrderIndex(opts ...sql.OrderTermOption) OrderOption {
 // ByQuizID orders the results by the quiz_id field.
 func ByQuizID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldQuizID, opts...).ToFunc()
+}
+
+// ByQuestionType orders the results by the question_type field.
+func ByQuestionType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldQuestionType, opts...).ToFunc()
 }
 
 // ByQuizField orders the results by quiz field.

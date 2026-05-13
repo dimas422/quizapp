@@ -69,6 +69,11 @@ func QuizID(v uuid.UUID) predicate.Question {
 	return predicate.Question(sql.FieldEQ(FieldQuizID, v))
 }
 
+// QuestionType applies equality check predicate on the "question_type" field. It's identical to QuestionTypeEQ.
+func QuestionType(v string) predicate.Question {
+	return predicate.Question(sql.FieldEQ(FieldQuestionType, v))
+}
+
 // TextEQ applies the EQ predicate on the "text" field.
 func TextEQ(v string) predicate.Question {
 	return predicate.Question(sql.FieldEQ(FieldText, v))
@@ -202,6 +207,71 @@ func QuizIDIsNil() predicate.Question {
 // QuizIDNotNil applies the NotNil predicate on the "quiz_id" field.
 func QuizIDNotNil() predicate.Question {
 	return predicate.Question(sql.FieldNotNull(FieldQuizID))
+}
+
+// QuestionTypeEQ applies the EQ predicate on the "question_type" field.
+func QuestionTypeEQ(v string) predicate.Question {
+	return predicate.Question(sql.FieldEQ(FieldQuestionType, v))
+}
+
+// QuestionTypeNEQ applies the NEQ predicate on the "question_type" field.
+func QuestionTypeNEQ(v string) predicate.Question {
+	return predicate.Question(sql.FieldNEQ(FieldQuestionType, v))
+}
+
+// QuestionTypeIn applies the In predicate on the "question_type" field.
+func QuestionTypeIn(vs ...string) predicate.Question {
+	return predicate.Question(sql.FieldIn(FieldQuestionType, vs...))
+}
+
+// QuestionTypeNotIn applies the NotIn predicate on the "question_type" field.
+func QuestionTypeNotIn(vs ...string) predicate.Question {
+	return predicate.Question(sql.FieldNotIn(FieldQuestionType, vs...))
+}
+
+// QuestionTypeGT applies the GT predicate on the "question_type" field.
+func QuestionTypeGT(v string) predicate.Question {
+	return predicate.Question(sql.FieldGT(FieldQuestionType, v))
+}
+
+// QuestionTypeGTE applies the GTE predicate on the "question_type" field.
+func QuestionTypeGTE(v string) predicate.Question {
+	return predicate.Question(sql.FieldGTE(FieldQuestionType, v))
+}
+
+// QuestionTypeLT applies the LT predicate on the "question_type" field.
+func QuestionTypeLT(v string) predicate.Question {
+	return predicate.Question(sql.FieldLT(FieldQuestionType, v))
+}
+
+// QuestionTypeLTE applies the LTE predicate on the "question_type" field.
+func QuestionTypeLTE(v string) predicate.Question {
+	return predicate.Question(sql.FieldLTE(FieldQuestionType, v))
+}
+
+// QuestionTypeContains applies the Contains predicate on the "question_type" field.
+func QuestionTypeContains(v string) predicate.Question {
+	return predicate.Question(sql.FieldContains(FieldQuestionType, v))
+}
+
+// QuestionTypeHasPrefix applies the HasPrefix predicate on the "question_type" field.
+func QuestionTypeHasPrefix(v string) predicate.Question {
+	return predicate.Question(sql.FieldHasPrefix(FieldQuestionType, v))
+}
+
+// QuestionTypeHasSuffix applies the HasSuffix predicate on the "question_type" field.
+func QuestionTypeHasSuffix(v string) predicate.Question {
+	return predicate.Question(sql.FieldHasSuffix(FieldQuestionType, v))
+}
+
+// QuestionTypeEqualFold applies the EqualFold predicate on the "question_type" field.
+func QuestionTypeEqualFold(v string) predicate.Question {
+	return predicate.Question(sql.FieldEqualFold(FieldQuestionType, v))
+}
+
+// QuestionTypeContainsFold applies the ContainsFold predicate on the "question_type" field.
+func QuestionTypeContainsFold(v string) predicate.Question {
+	return predicate.Question(sql.FieldContainsFold(FieldQuestionType, v))
 }
 
 // HasQuiz applies the HasEdge predicate on the "quiz" edge.

@@ -57,6 +57,20 @@ func (_c *QuestionCreate) SetNillableQuizID(v *uuid.UUID) *QuestionCreate {
 	return _c
 }
 
+// SetQuestionType sets the "question_type" field.
+func (_c *QuestionCreate) SetQuestionType(v string) *QuestionCreate {
+	_c.mutation.SetQuestionType(v)
+	return _c
+}
+
+// SetNillableQuestionType sets the "question_type" field if the given value is not nil.
+func (_c *QuestionCreate) SetNillableQuestionType(v *string) *QuestionCreate {
+	if v != nil {
+		_c.SetQuestionType(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *QuestionCreate) SetID(v uuid.UUID) *QuestionCreate {
 	_c.mutation.SetID(v)
@@ -145,6 +159,10 @@ func (_c *QuestionCreate) defaults() {
 		v := question.DefaultOrderIndex
 		_c.mutation.SetOrderIndex(v)
 	}
+	if _, ok := _c.mutation.QuestionType(); !ok {
+		v := question.DefaultQuestionType
+		_c.mutation.SetQuestionType(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := question.DefaultID()
 		_c.mutation.SetID(v)
@@ -158,6 +176,9 @@ func (_c *QuestionCreate) check() error {
 	}
 	if _, ok := _c.mutation.OrderIndex(); !ok {
 		return &ValidationError{Name: "order_index", err: errors.New(`ent: missing required field "Question.order_index"`)}
+	}
+	if _, ok := _c.mutation.QuestionType(); !ok {
+		return &ValidationError{Name: "question_type", err: errors.New(`ent: missing required field "Question.question_type"`)}
 	}
 	return nil
 }
@@ -201,6 +222,10 @@ func (_c *QuestionCreate) createSpec() (*Question, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.OrderIndex(); ok {
 		_spec.SetField(question.FieldOrderIndex, field.TypeInt, value)
 		_node.OrderIndex = value
+	}
+	if value, ok := _c.mutation.QuestionType(); ok {
+		_spec.SetField(question.FieldQuestionType, field.TypeString, value)
+		_node.QuestionType = value
 	}
 	if nodes := _c.mutation.QuizIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

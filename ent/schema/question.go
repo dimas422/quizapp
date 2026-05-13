@@ -17,6 +17,7 @@ func (Question) Fields() []ent.Field {
 		field.String("text"),
 		field.Int("order_index").Default(0),
 		field.UUID("quiz_id", uuid.UUID{}).Optional(),
+		field.String("question_type").Default("choice"),
 	}
 }
 
